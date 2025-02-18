@@ -4,6 +4,8 @@ public class LocationDTO {
     private Long id;
     private String name;
     private String description;
+    private boolean completed;
+    private boolean locked;
 
     // Getters and setters
     public Long getId() {
@@ -29,4 +31,21 @@ public class LocationDTO {
     public void setDescription(String description) {
         this.description = description;
     }
+
+    public boolean isCompleted() {
+        return completed;
+    }
+
+    public void setCompleted(boolean completed) {
+        this.completed = completed;
+    }
+
+    public boolean isLocked() {
+        return locked;
+    }
+
+    public void setLocked(boolean locked) {
+        this.locked = locked;
+    }
+
 }

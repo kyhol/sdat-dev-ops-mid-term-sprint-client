@@ -1,33 +1,60 @@
 package com.keyin.hero;
 
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.beans.factory.annotation.Value;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.Map;
 
-@Service
 public class HeroService {
-    private final RestTemplate restTemplate;
+    private final HttpClient client;
+    private final ObjectMapper objectMapper;
     private final String baseUrl;
     private HeroDTO currentHero;
 
-    public HeroService(@Value("${api.base-url}") String baseUrl) {
-        this.restTemplate = new RestTemplate();
+    public HeroService(String baseUrl) {
+        this.client = HttpClient.newHttpClient();
+        this.objectMapper = new ObjectMapper();
         this.baseUrl = baseUrl + "/api/heroes";
     }
 
-    public HeroDTO createHero(String name) {
-        Map<String, String> request = Map.of("name", name);
-        currentHero = restTemplate.postForObject(baseUrl, request, HeroDTO.class);
+    public HeroDTO createHero(String name) throws Exception {
+        String jsonBody = objectMapper.writeValueAsString(Map.of("name", name));
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            throw new RuntimeException("Failed to create hero: " + response.statusCode());
+        }
+
+        currentHero = objectMapper.readValue(response.body(), HeroDTO.class);
         return currentHero;
     }
 
-    public HeroDTO getCurrentHero() {
+    public HeroDTO getCurrentHero() throws Exception {
         if (currentHero == null || currentHero.getId() == null) {
             return null;
         }
-        String url = baseUrl + "/" + currentHero.getId();
-        currentHero = restTemplate.getForObject(url, HeroDTO.class);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/" + currentHero.getId()))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            throw new RuntimeException("Failed to get hero: " + response.statusCode());
+        }
+
+        currentHero = objectMapper.readValue(response.body(), HeroDTO.class);
         return currentHero;
     }
 }

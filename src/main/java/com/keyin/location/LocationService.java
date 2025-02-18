@@ -1,29 +1,51 @@
 package com.keyin.location;
 
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
-import java.util.Arrays;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.List;
 
-@Service
 public class LocationService {
-    private final RestTemplate restTemplate;
+    private final HttpClient client;
+    private final ObjectMapper objectMapper;
     private final String baseUrl;
 
-    public LocationService(@Value("${api.base-url}") String baseUrl) {
-        this.restTemplate = new RestTemplate();
+    public LocationService(String baseUrl) {
+        this.client = HttpClient.newHttpClient();
+        this.objectMapper = new ObjectMapper();
         this.baseUrl = baseUrl + "/location";
     }
 
-    public String moveToNextLocation(Long heroId) {
-        String url = baseUrl + "/next/" + heroId;
-        return restTemplate.postForObject(url, null, String.class);
+    public String moveToNextLocation(Long heroId) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/next/" + heroId))
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            throw new RuntimeException("Failed to move to next location: " + response.statusCode());
+        }
+
+        return response.body();
     }
 
-    public List<LocationDTO> getAllLocations() {
-        ResponseEntity<LocationDTO[]> response = restTemplate.getForEntity(baseUrl, LocationDTO[].class);
-        return Arrays.asList(response.getBody());
+    public List<LocationDTO> getAllLocations() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            throw new RuntimeException("Failed to get locations: " + response.statusCode());
+        }
+
+        return objectMapper.readValue(response.body(), new TypeReference<List<LocationDTO>>(){});
     }
 }

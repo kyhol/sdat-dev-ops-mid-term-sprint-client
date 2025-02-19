@@ -173,10 +173,9 @@ public class GameInterfaceGUI extends JFrame {
     private void createStartPanel() {
         JPanel panel = new JPanel(new BorderLayout());
 
-        // Create a game view area for the top portion
-        JPanel gameViewArea = new JPanel();
-        gameViewArea.setPreferredSize(new Dimension(600, 300));
-        panel.add(gameViewArea, BorderLayout.CENTER);
+        // Add the game art panel
+        GameArtPanel gameArtPanel = new GameArtPanel();
+        panel.add(gameArtPanel, BorderLayout.CENTER);
 
         // Add the dialog box
         dialogBox = new DialogBox();

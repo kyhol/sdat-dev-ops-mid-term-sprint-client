@@ -27,6 +27,11 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.*;
 import javax.swing.Box;
+// Add these new imports for audio
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.FloatControl;
 
 import com.keyin.hero.HeroDTO;
 import com.keyin.hero.HeroService;
@@ -46,6 +51,10 @@ public class GameInterfaceGUI extends JFrame {
     private int plushiesCollected = 0;
     private List<Long> completedLocations = new ArrayList<>();
     private List<LocationDTO> allLocations = new ArrayList<>();
+
+    // Add these new fields for music
+    private Clip musicClip;
+    private boolean isMuted = false;
 
     public GameInterfaceGUI(HeroService heroService, LocationService locationService) {
         this.heroService = heroService;
@@ -80,12 +89,45 @@ public class GameInterfaceGUI extends JFrame {
         label.setFont(new Font("Arial", Font.BOLD, 24));
         panel.add(label, BorderLayout.CENTER);
 
+        // Create button panel for multiple buttons
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+
         JButton startButton = new JButton("Start New Game");
-        startButton.addActionListener(e -> cardLayout.show(mainPanel, "heroCreation"));
-        panel.add(startButton, BorderLayout.SOUTH);
+        startButton.addActionListener(e -> {
+            stopMusic();
+            cardLayout.show(mainPanel, "heroCreation");
+        });
+
+        // Add mute button
+        JButton muteButton = new JButton("🔊");
+        muteButton.addActionListener(e -> {
+            isMuted = !isMuted;
+            if (isMuted) {
+                muteButton.setText("🔇");
+                stopMusic();
+            } else {
+                muteButton.setText("🔊");
+                playMusic();
+            }
+        });
+
+        buttonPanel.add(startButton);
+        buttonPanel.add(muteButton);
+        panel.add(buttonPanel, BorderLayout.SOUTH);
+
+        // Add component listener to play music when panel is shown
+        panel.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                if (!isMuted) {
+                    playMusic();
+                }
+            }
+        });
 
         mainPanel.add(panel, "welcome");
     }
+
     private void createHeroCreationPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
         JPanel formPanel = new JPanel();
@@ -297,6 +339,55 @@ public class GameInterfaceGUI extends JFrame {
             JOptionPane.showMessageDialog(this, "Error resetting game: " + ex.getMessage());
         }
         cardLayout.show(mainPanel, "welcome");
+    }
+
+    private void playMusic() {
+        try {
+            // Load the sound file from resources
+            java.net.URL soundURL = getClass().getResource("/audio/opening-theme.wav");
+            if (soundURL == null) {
+                System.err.println("Could not find audio file");
+                return;
+            }
+
+            AudioInputStream audioIn = AudioSystem.getAudioInputStream(soundURL);
+            musicClip = AudioSystem.getClip();
+            musicClip.open(audioIn);
+
+            // Set initial volume (optional)
+            setVolume(0.5f); // 50% volume
+
+            musicClip.loop(Clip.LOOP_CONTINUOUSLY);
+            musicClip.start();
+        } catch (Exception e) {
+            System.err.println("Error playing music: " + e.getMessage());
+        }
+    }
+
+    private void stopMusic() {
+        if (musicClip != null && musicClip.isRunning()) {
+            musicClip.stop();
+            musicClip.close();
+        }
+    }
+
+    private void setVolume(float volume) {
+        if (musicClip != null) {
+            try {
+                FloatControl gainControl =
+                        (FloatControl) musicClip.getControl(FloatControl.Type.MASTER_GAIN);
+                float dB = (float) (Math.log(volume) / Math.log(10.0) * 20.0);
+                gainControl.setValue(dB);
+            } catch (Exception e) {
+                System.err.println("Error setting volume: " + e.getMessage());
+            }
+        }
+    }
+
+    @Override
+    public void dispose() {
+        stopMusic();
+        super.dispose();
     }
 
     public static void main(String[] args) {

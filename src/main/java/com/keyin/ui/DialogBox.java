@@ -39,6 +39,11 @@ public class DialogBox extends JPanel {
         continueIndicator.setHorizontalAlignment(SwingConstants.RIGHT);
         continueIndicator.setVisible(false);
 
+        // Set focusable to false for all components
+        setFocusable(false);
+        textArea.setFocusable(false);
+        continueIndicator.setFocusable(false);
+
         // Add components to panel
         JPanel textPanel = new JPanel(new BorderLayout());
         textPanel.setBackground(Color.BLACK);
@@ -64,19 +69,9 @@ public class DialogBox extends JPanel {
             continueIndicator.setVisible(true);
             ((Timer)e.getSource()).stop();
         });
-
-        // Add click listener to show all text immediately
-        addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if (isTyping) {
-                    completeTyping();
-                }
-            }
-        });
     }
 
-    private void completeTyping() {
+    public void completeTyping() {
         typingTimer.stop();
         textArea.setText(fullText);
         isTyping = false;

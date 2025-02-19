@@ -14,6 +14,12 @@ import java.util.List;
 import java.awt.*;
 import java.awt.FlowLayout;
 import java.awt.Dimension;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import javax.swing.JPanel;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -182,42 +188,46 @@ public class GameInterfaceGUI extends JFrame {
         panel.add(dialogBox, BorderLayout.SOUTH);
 
         // Track the dialog state
-        final int[] dialogState = {0}; // Using array to allow modification in lambda
+        final int[] dialogState = {0};
 
-        // Add key listener for the panel
-        KeyAdapter keyAdapter = new KeyAdapter() {
+        // Create global keyboard manager
+        KeyEventDispatcher keyEventDispatcher = new KeyEventDispatcher() {
             @Override
-            public void keyPressed(KeyEvent e) {
-                if (!dialogBox.isTyping()) {
-                    switch (dialogState[0]) {
-                        case 0:
-                            // First key press - show adventure prompt
-                            dialogBox.showText("* Are you ready to start your adventure?");
-                            dialogState[0] = 1;
-                            break;
-                        case 1:
-                            // Second key press - move to next screen
-                            cardLayout.show(mainPanel, "locationSelection");
-                            break;
+            public boolean dispatchKeyEvent(KeyEvent e) {
+                if (e.getID() == KeyEvent.KEY_PRESSED && panel.isShowing()) {
+                    if (!dialogBox.isTyping()) {
+                        switch (dialogState[0]) {
+                            case 0:
+                                dialogBox.showText("* Are you ready to start your adventure?");
+                                dialogState[0] = 1;
+                                break;
+                            case 1:
+                                cardLayout.show(mainPanel, "locationSelection");
+                                break;
+                        }
                     }
+                    return true;
                 }
+                return false;
             }
         };
 
-        panel.addKeyListener(keyAdapter);
-        panel.setFocusable(true);
+        // Add the global keyboard manager
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(keyEventDispatcher);
 
+        // Component listener for initial setup
         panel.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentShown(ComponentEvent e) {
-                panel.requestFocusInWindow();
-                // Show first story text immediately when panel appears
                 dialogBox.showText("* In a world where plushies hold magical powers...\n* Your quest to collect them all begins.");
                 dialogState[0] = 0;
             }
         });
 
         mainPanel.add(panel, "startPanel");
+
+        // Store the dispatcher so we can remove it later if needed
+        panel.putClientProperty("keyEventDispatcher", keyEventDispatcher);
     }
     private void createLocationSelectionPanel() {
         JPanel locationSelectionPanel = new JPanel(new BorderLayout());

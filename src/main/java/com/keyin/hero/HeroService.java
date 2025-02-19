@@ -19,6 +19,26 @@ public class HeroService {
         this.baseUrl = baseUrl + "/api/heroes";
     }
 
+    public HeroDTO updateHero(String name) throws Exception {
+        Long defaultHeroId = 1L;
+
+        String jsonBody = objectMapper.writeValueAsString(Map.of("name", name));
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/" + defaultHeroId))
+                .header("Content-Type", "application/json")
+                .PUT(HttpRequest.BodyPublishers.ofString(jsonBody))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            throw new RuntimeException("Failed to update hero: " + response.statusCode());
+        }
+
+        currentHero = objectMapper.readValue(response.body(), HeroDTO.class);
+        return currentHero;
+    }
     public HeroDTO createHero(String name) throws Exception {
         String jsonBody = objectMapper.writeValueAsString(Map.of("name", name));
 

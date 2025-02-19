@@ -19,7 +19,6 @@ public class HeroService {
         this.baseUrl = baseUrl + "/api/heroes";
     }
 
-    // Add this new method
     public HeroDTO updateHero(String name) throws Exception {
         Long defaultHeroId = 1L;
 

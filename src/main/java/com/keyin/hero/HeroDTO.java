@@ -4,6 +4,7 @@ public class HeroDTO {
     private Long id;
     private String name;
     private String createdAt;
+    private Long currentLocationID;
 
     public Long getId() {
         return id;
@@ -28,4 +29,8 @@ public class HeroDTO {
     public void setCreatedAt(String createdAt) {
         this.createdAt = createdAt;
     }
+
+    public Long getCurrentLocationID() {return currentLocationID; }
+
+    public void setCurrentLocationID(Long currentLocationID) {this.currentLocationID = currentLocationID; }
 }

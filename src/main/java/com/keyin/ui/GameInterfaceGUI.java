@@ -47,6 +47,7 @@ public class GameInterfaceGUI extends JFrame {
     private JPanel mainPanel;
     private JTextArea outputArea;
     private JPanel locationButtonPanel;
+    private DialogBox dialogBox;
 
     private int plushiesCollected = 0;
     private List<Long> completedLocations = new ArrayList<>();
@@ -172,31 +173,48 @@ public class GameInterfaceGUI extends JFrame {
     private void createStartPanel() {
         JPanel panel = new JPanel(new BorderLayout());
 
-        JLabel label = new JLabel("Press any key to start your adventure!", SwingConstants.CENTER);
-        label.setFont(new Font("Arial", Font.BOLD, 20));
-        panel.add(label, BorderLayout.CENTER);
+        // Create a game view area for the top portion
+        JPanel gameViewArea = new JPanel();
+        gameViewArea.setPreferredSize(new Dimension(600, 300));
+        panel.add(gameViewArea, BorderLayout.CENTER);
 
-        JButton pressKeyButton = new JButton("Click here to continue");
-        pressKeyButton.addActionListener(e -> cardLayout.show(mainPanel, "locationSelection"));
-        panel.add(pressKeyButton, BorderLayout.SOUTH);
+        // Add the dialog box
+        dialogBox = new DialogBox();
+        panel.add(dialogBox, BorderLayout.SOUTH);
 
+        // Track the dialog state
+        final int[] dialogState = {0}; // Using array to allow modification in lambda
+
+        // Add key listener for the panel
         KeyAdapter keyAdapter = new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                cardLayout.show(mainPanel, "locationSelection");
+                if (!dialogBox.isTyping()) {
+                    switch (dialogState[0]) {
+                        case 0:
+                            // First key press - show adventure prompt
+                            dialogBox.showText("* Are you ready to start your adventure?");
+                            dialogState[0] = 1;
+                            break;
+                        case 1:
+                            // Second key press - move to next screen
+                            cardLayout.show(mainPanel, "locationSelection");
+                            break;
+                    }
+                }
             }
         };
 
         panel.addKeyListener(keyAdapter);
-        label.addKeyListener(keyAdapter);
-
         panel.setFocusable(true);
-        label.setFocusable(true);
 
         panel.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentShown(ComponentEvent e) {
                 panel.requestFocusInWindow();
+                // Show first story text immediately when panel appears
+                dialogBox.showText("* In a world where plushies hold magical powers...\n* Your quest to collect them all begins.");
+                dialogState[0] = 0;
             }
         });
 

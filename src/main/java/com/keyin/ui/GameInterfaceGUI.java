@@ -129,21 +129,34 @@ public class GameInterfaceGUI extends JFrame {
 
     private void createStartPanel() {
         JPanel panel = new JPanel(new BorderLayout());
+
         JLabel label = new JLabel("Press any key to start your adventure!", SwingConstants.CENTER);
         label.setFont(new Font("Arial", Font.BOLD, 20));
         panel.add(label, BorderLayout.CENTER);
 
-        JButton pressKeyButton = new JButton("Press any key");
+        JButton pressKeyButton = new JButton("Click here to continue");
         pressKeyButton.addActionListener(e -> cardLayout.show(mainPanel, "locationSelection"));
         panel.add(pressKeyButton, BorderLayout.SOUTH);
 
-        panel.addKeyListener(new KeyAdapter() {
+        KeyAdapter keyAdapter = new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
                 cardLayout.show(mainPanel, "locationSelection");
             }
-        });
+        };
+
+        panel.addKeyListener(keyAdapter);
+        label.addKeyListener(keyAdapter);
+
         panel.setFocusable(true);
+        label.setFocusable(true);
+
+        panel.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                panel.requestFocusInWindow();
+            }
+        });
 
         mainPanel.add(panel, "startPanel");
     }

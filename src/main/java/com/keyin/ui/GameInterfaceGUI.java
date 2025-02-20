@@ -62,6 +62,7 @@ public class GameInterfaceGUI extends JFrame {
     private int plushiesCollected = 0;
     private List<Long> completedLocations = new ArrayList<>();
     private List<LocationDTO> allLocations = new ArrayList<>();
+    private List<String> collectedPlushies = new ArrayList<>();
 
     // Add these new fields for music
     private Clip musicClip;
@@ -375,6 +376,15 @@ public class GameInterfaceGUI extends JFrame {
         JScrollPane scrollPane = new JScrollPane(locationButtonPanel);
         locationSelectionPanel.add(scrollPane, BorderLayout.CENTER);
 
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+
+        JButton viewPlushiesButton = new JButton("View Plushies");
+        viewPlushiesButton.addActionListener(e -> {
+            PlushieDialog dialog = new PlushieDialog(this, collectedPlushies);
+            dialog.setVisible(true);
+        });
+        buttonPanel.add(viewPlushiesButton);
+
         JButton resetButton = new JButton("Reset Game");
         resetButton.addActionListener(e -> {
             int choice = JOptionPane.showConfirmDialog(
@@ -388,7 +398,9 @@ public class GameInterfaceGUI extends JFrame {
                 restartGame();
             }
         });
-        locationSelectionPanel.add(resetButton, BorderLayout.SOUTH);
+        buttonPanel.add(resetButton);
+
+        locationSelectionPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         locationSelectionPanel.addComponentListener(new ComponentAdapter() {
             @Override
@@ -491,6 +503,13 @@ public class GameInterfaceGUI extends JFrame {
 
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 System.out.println("Successfully completed location " + locationId);
+                // Get the location name and add it to collected plushies
+                for (LocationDTO location : allLocations) {
+                    if (location.getId().equals(locationId)) {
+                        collectedPlushies.add(location.getName() + " Plushie");
+                        break;
+                    }
+                }
                 return true;
             } else {
                 System.err.println("Failed to complete location " + locationId);
@@ -512,7 +531,69 @@ public class GameInterfaceGUI extends JFrame {
             return false;
         }
     }
+    public class PlushieDialog extends JDialog {
+        public PlushieDialog(JFrame parent, List<String> plushies) {
+            super(parent, "Your Plushie Collection", true);
+            setSize(400, 300);
+            setLocationRelativeTo(parent);
 
+            // Create main panel with a nice border layout
+            JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+            mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+            // Add title at the top
+            JLabel titleLabel = new JLabel("Your Magical Plushie Collection", SwingConstants.CENTER);
+            titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
+            mainPanel.add(titleLabel, BorderLayout.NORTH);
+
+            // Create panel for plushies with vertical BoxLayout
+            JPanel plushiePanel = new JPanel();
+            plushiePanel.setLayout(new BoxLayout(plushiePanel, BoxLayout.Y_AXIS));
+
+            if (plushies.isEmpty()) {
+                JLabel emptyLabel = new JLabel("No plushies collected yet!");
+                emptyLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+                plushiePanel.add(emptyLabel);
+            } else {
+                for (String plushie : plushies) {
+                    JPanel plushieItemPanel = createPlushieItemPanel(plushie);
+                    plushiePanel.add(plushieItemPanel);
+                    plushiePanel.add(Box.createRigidArea(new Dimension(0, 10))); // spacing between items
+                }
+            }
+
+            // Add plushie panel to a scroll pane
+            JScrollPane scrollPane = new JScrollPane(plushiePanel);
+            scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+            mainPanel.add(scrollPane, BorderLayout.CENTER);
+
+            // Add close button at the bottom
+            JButton closeButton = new JButton("Close");
+            closeButton.addActionListener(e -> dispose());
+            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+            buttonPanel.add(closeButton);
+            mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+            add(mainPanel);
+        }
+
+        private JPanel createPlushieItemPanel(String plushieName) {
+            JPanel panel = new JPanel();
+            panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+            panel.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(Color.GRAY),
+                    BorderFactory.createEmptyBorder(5, 5, 5, 5)
+            ));
+            panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 75));
+
+            JLabel nameLabel = new JLabel(plushieName);
+            nameLabel.setFont(new Font("Arial", Font.BOLD, 14));
+            nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            panel.add(nameLabel);
+            return panel;
+        }
+    }
     private void createMiniGamePanel() {
         JPanel panel = new JPanel(new BorderLayout());
         outputArea = new JTextArea();
@@ -579,6 +660,7 @@ public class GameInterfaceGUI extends JFrame {
     private void restartGame() {
         plushiesCollected = 0;
         completedLocations.clear();
+        collectedPlushies.clear();
 
         // Reset locations in the database
         try {

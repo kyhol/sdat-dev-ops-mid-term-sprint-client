@@ -375,16 +375,20 @@ public class GameInterfaceGUI extends JFrame {
         JScrollPane scrollPane = new JScrollPane(locationButtonPanel);
         locationSelectionPanel.add(scrollPane, BorderLayout.CENTER);
 
-        JButton refreshButton = new JButton("Refresh Locations");
-        refreshButton.addActionListener(e -> {
-            try {
-                allLocations = locationService.getAllLocations();
-                populateLocationButtons();
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error fetching locations: " + ex.getMessage());
+        JButton resetButton = new JButton("Reset Game");
+        resetButton.addActionListener(e -> {
+            int choice = JOptionPane.showConfirmDialog(
+                    this,
+                    "Are you sure you want to reset the game? All progress will be lost.",
+                    "Reset Game",
+                    JOptionPane.YES_NO_OPTION
+            );
+
+            if (choice == JOptionPane.YES_OPTION) {
+                restartGame();
             }
         });
-        locationSelectionPanel.add(refreshButton, BorderLayout.SOUTH);
+        locationSelectionPanel.add(resetButton, BorderLayout.SOUTH);
 
         locationSelectionPanel.addComponentListener(new ComponentAdapter() {
             @Override

@@ -1,5 +1,6 @@
 package com.keyin.ui;
 
+import java.util.stream.Collectors;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Font;
@@ -419,7 +420,12 @@ public class GameInterfaceGUI extends JFrame {
 
     private void populateLocationButtons() {
         locationButtonPanel.removeAll();
-        for (LocationDTO location : allLocations) {
+        // Filter out locations with IDs 1 and 7
+        List<LocationDTO> filteredLocations = allLocations.stream()
+                .filter(location -> location.getId() != 1 && location.getId() != 7)
+                .collect(Collectors.toList());
+
+        for (LocationDTO location : filteredLocations) {
             JButton locButton = new JButton(location.getName());
             locButton.addActionListener((ActionEvent e) -> {
                 if (completedLocations.contains(location.getId())) {

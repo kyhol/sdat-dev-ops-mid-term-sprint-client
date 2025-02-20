@@ -4,45 +4,49 @@ import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.FlowLayout;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.util.ArrayList;
-import java.util.List;
-import java.awt.*;
-import java.awt.FlowLayout;
-import java.awt.Dimension;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import javax.swing.JPanel;
+import java.awt.*;
 
+import javax.swing.JPanel;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
-import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
-import javax.swing.*;
 import javax.swing.Box;
-// Add these new imports for audio
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.Clip;
-import javax.sound.sampled.FloatControl;
+import javax.swing.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.keyin.hero.HeroDTO;
 import com.keyin.hero.HeroService;
 import com.keyin.location.LocationDTO;
 import com.keyin.location.LocationService;
+
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.FloatControl;
 
 public class GameInterfaceGUI extends JFrame {
     private final HeroService heroService;
@@ -176,6 +180,124 @@ public class GameInterfaceGUI extends JFrame {
         mainPanel.add(panel, "heroCreation");
     }
 
+
+
+    private boolean updateLocationCompletion(Long locationId, boolean completed) {
+        try {
+            URL url = new URL("http://localhost:8080/location/" + locationId);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("PUT");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+
+            // Create the request body
+            LocationDTO updateDto = new LocationDTO();
+            updateDto.setId(locationId);
+            updateDto.setCompleted(completed);
+
+            ObjectMapper mapper = new ObjectMapper();
+            String jsonInputString = mapper.writeValueAsString(updateDto);
+
+            try(OutputStream os = conn.getOutputStream()) {
+                byte[] input = jsonInputString.getBytes("utf-8");
+                os.write(input, 0, input.length);
+            }
+
+            int responseCode = conn.getResponseCode();
+            System.out.println("Update completion status response code: " + responseCode);
+
+            return responseCode == HttpURLConnection.HTTP_OK;
+
+        } catch (Exception e) {
+            System.err.println("Error updating location completion: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private int getCompletedLocationsCount() {
+        try {
+            URL url = new URL("http://localhost:8080/location");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            int responseCode = conn.getResponseCode();
+            System.out.println("Response Code: " + responseCode);
+
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(conn.getInputStream())
+                );
+                StringBuilder response = new StringBuilder();
+                String line;
+
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+
+                System.out.println("Response body: " + response.toString());
+
+                ObjectMapper mapper = new ObjectMapper();
+                List<LocationDTO> locations = mapper.readValue(
+                        response.toString(),
+                        new TypeReference<List<LocationDTO>>(){}
+                );
+
+                System.out.println("Found " + locations.size() + " locations");
+
+                int completedCount = 0;
+                for (LocationDTO loc : locations) {
+                    if (loc.isCompleted()) {
+                        completedCount++;
+                    }
+                }
+                return completedCount;
+            } else {
+                System.err.println("Server returned error code: " + responseCode);
+                if (responseCode == 404) {
+                    System.err.println("The endpoint /location was not found. Please verify:");
+                    System.err.println("1. The Spring Boot server is running");
+                    System.err.println("2. The correct endpoint URL is being used");
+                    System.err.println("3. The LocationController is properly mapped to /location");
+                }
+
+                try (BufferedReader errorReader = new BufferedReader(
+                        new InputStreamReader(conn.getErrorStream()))) {
+                    StringBuilder errorResponse = new StringBuilder();
+                    String errorLine;
+                    while ((errorLine = errorReader.readLine()) != null) {
+                        errorResponse.append(errorLine);
+                    }
+                    System.err.println("Error response: " + errorResponse.toString());
+                } catch (Exception e) {
+                    System.err.println("Could not read error stream");
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Exception while fetching locations: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    private String getProgressionText(int completedCount) {
+        switch (completedCount) {
+            case 0:
+                return "* In a world where plushies hold magical powers...\n* Your quest to collect them all begins.";
+            case 1:
+                return "* You've found your first magical plushie!\n* But there are still many more to discover...";
+            case 2:
+                return "* Two magical plushies in your collection!\n* Their combined power grows stronger...";
+            case 3:
+                return "* Three magical plushies gathered!\n* You're becoming a true collector...";
+            case 4:
+                return "* Four magical plushies united!\n* Their magic resonates throughout the land...";
+            default:
+                return "* You've become a legendary plushie collector!\n* Your collection's power is unmatched!";
+        }
+    }
+
     private void createStartPanel() {
         JPanel panel = new JPanel(new BorderLayout());
 
@@ -198,8 +320,13 @@ public class GameInterfaceGUI extends JFrame {
                     if (!dialogBox.isTyping()) {
                         switch (dialogState[0]) {
                             case 0:
-                                dialogBox.showText("* Are you ready to start your adventure?");
-                                dialogState[0] = 1;
+                                int completedCount = getCompletedLocationsCount();
+                                if (completedCount == 0) {
+                                    dialogBox.showText("* Are you ready to start your adventure?");
+                                    dialogState[0] = 1;
+                                } else {
+                                    cardLayout.show(mainPanel, "locationSelection");
+                                }
                                 break;
                             case 1:
                                 cardLayout.show(mainPanel, "locationSelection");
@@ -219,14 +346,23 @@ public class GameInterfaceGUI extends JFrame {
         panel.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentShown(ComponentEvent e) {
-                dialogBox.showText("* In a world where plushies hold magical powers...\n* Your quest to collect them all begins.");
-                dialogState[0] = 0;
+                SwingWorker<Void, Void> worker = new SwingWorker<>() {
+                    @Override
+                    protected Void doInBackground() {
+                        int completedCount = getCompletedLocationsCount();
+                        String progressText = getProgressionText(completedCount);
+                        SwingUtilities.invokeLater(() -> {
+                            dialogBox.showText(progressText);
+                            dialogState[0] = 0;
+                        });
+                        return null;
+                    }
+                };
+                worker.execute();
             }
         });
 
         mainPanel.add(panel, "startPanel");
-
-        // Store the dispatcher so we can remove it later if needed
         panel.putClientProperty("keyEventDispatcher", keyEventDispatcher);
     }
     private void createLocationSelectionPanel() {
@@ -274,15 +410,51 @@ public class GameInterfaceGUI extends JFrame {
                     JOptionPane.showMessageDialog(this, "This location has already been completed!", "Warning", JOptionPane.WARNING_MESSAGE);
                 } else {
                     try {
-                        locationService.moveToNextLocation(currentHero.getId());
-                    } catch (Exception ex) {
-                        System.err.println("Error moving to location: " + ex.getMessage());
-                    }
-                    completedLocations.add(location.getId());
-                    plushiesCollected++;
+                        // Start showing the location entry immediately
+                        outputArea.setText("You have entered " + location.getName() + ".\nPlaying mini-game...");
 
-                    outputArea.setText("You have entered " + location.getName() + ".\nPlaying mini-game...");
-                    cardLayout.show(mainPanel, "miniGame");
+                        // Complete location in background
+                        SwingWorker<Boolean, Void> worker = new SwingWorker<>() {
+                            @Override
+                            protected Boolean doInBackground() throws Exception {
+                                return completeLocation(location.getId());
+                            }
+
+                            @Override
+                            protected void done() {
+                                try {
+                                    if (get()) {  // if completion was successful
+                                        completedLocations.add(location.getId());
+                                        plushiesCollected++;
+                                        String progressText = getProgressionText(completedLocations.size());
+                                        dialogBox.clear();
+                                        dialogBox.showText(progressText);
+                                        locButton.setEnabled(false);
+                                        cardLayout.show(mainPanel, "miniGame");
+                                    } else {
+                                        JOptionPane.showMessageDialog(GameInterfaceGUI.this,
+                                                "Failed to update location status",
+                                                "Error",
+                                                JOptionPane.ERROR_MESSAGE);
+                                    }
+                                } catch (Exception ex) {
+                                    System.err.println("Error completing location: " + ex.getMessage());
+                                    JOptionPane.showMessageDialog(GameInterfaceGUI.this,
+                                            "Error: " + ex.getMessage(),
+                                            "Error",
+                                            JOptionPane.ERROR_MESSAGE);
+                                }
+                            }
+                        };
+                        worker.execute();
+
+                    } catch (Exception ex) {
+                        System.err.println("Error initiating location completion: " + ex.getMessage());
+                        JOptionPane.showMessageDialog(GameInterfaceGUI.this,
+                                "Error: " + ex.getMessage(),
+                                "Error",
+                                JOptionPane.ERROR_MESSAGE);
+                    }
                 }
             });
             if (completedLocations.contains(location.getId())) {
@@ -293,6 +465,50 @@ public class GameInterfaceGUI extends JFrame {
         locationButtonPanel.revalidate();
         locationButtonPanel.repaint();
     }
+    private boolean completeLocation(Long locationId) {
+        try {
+            URL url = new URL("http://localhost:8080/location/" + locationId);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("PUT");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+
+            // Create a minimal JSON body with just the completion status
+            String jsonInputString = "{\"id\":" + locationId + ",\"completed\":true}";
+
+            // Send the request
+            try(OutputStream os = conn.getOutputStream()) {
+                byte[] input = jsonInputString.getBytes("utf-8");
+                os.write(input, 0, input.length);
+            }
+
+            int responseCode = conn.getResponseCode();
+            System.out.println("Complete location response code: " + responseCode);
+
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                System.out.println("Successfully completed location " + locationId);
+                return true;
+            } else {
+                System.err.println("Failed to complete location " + locationId);
+                // Read and print error response if any
+                try (BufferedReader br = new BufferedReader(
+                        new InputStreamReader(conn.getErrorStream(), "utf-8"))) {
+                    StringBuilder response = new StringBuilder();
+                    String responseLine = null;
+                    while ((responseLine = br.readLine()) != null) {
+                        response.append(responseLine.trim());
+                    }
+                    System.err.println("Error response: " + response.toString());
+                }
+                return false;
+            }
+        } catch (Exception e) {
+            System.err.println("Exception completing location: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     private void createMiniGamePanel() {
         JPanel panel = new JPanel(new BorderLayout());
         outputArea = new JTextArea();
@@ -359,13 +575,37 @@ public class GameInterfaceGUI extends JFrame {
     private void restartGame() {
         plushiesCollected = 0;
         completedLocations.clear();
+
+        // Reset locations in the database
         try {
-            allLocations = locationService.getAllLocations();
-            populateLocationButtons();
+            URL url = new URL("http://localhost:8080/location/reset");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+
+            int responseCode = conn.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                System.out.println("Successfully reset all locations");
+
+                // Refresh local location data
+                allLocations = locationService.getAllLocations();
+                populateLocationButtons();
+
+                // Show welcome screen
+                cardLayout.show(mainPanel, "welcome");
+            } else {
+                System.err.println("Failed to reset locations. Response code: " + responseCode);
+                JOptionPane.showMessageDialog(this,
+                        "Failed to reset game state",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Error resetting game: " + ex.getMessage());
+            System.err.println("Error resetting game: " + ex.getMessage());
+            JOptionPane.showMessageDialog(this,
+                    "Error resetting game: " + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
         }
-        cardLayout.show(mainPanel, "welcome");
     }
 
     private void playMusic() {

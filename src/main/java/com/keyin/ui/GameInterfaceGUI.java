@@ -43,6 +43,8 @@ import com.keyin.hero.HeroDTO;
 import com.keyin.hero.HeroService;
 import com.keyin.location.LocationDTO;
 import com.keyin.location.LocationService;
+import com.keyin.minigame.AbstractMiniGame;
+import com.keyin.minigame.MiniGameFactory;
 
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -88,7 +90,7 @@ public class GameInterfaceGUI extends JFrame {
         createHeroCreationPanel();
         createStartPanel();
         createLocationSelectionPanel();
-        createMiniGamePanel();
+        createMiniGamePanel(); // Keep this as a fallback
         createFinalBossPanel();
         createFinalCongratulationsPanel();
 
@@ -181,8 +183,6 @@ public class GameInterfaceGUI extends JFrame {
         panel.add(formPanel);
         mainPanel.add(panel, "heroCreation");
     }
-
-
 
     private boolean updateLocationCompletion(Long locationId, boolean completed) {
         try {
@@ -367,6 +367,7 @@ public class GameInterfaceGUI extends JFrame {
         mainPanel.add(panel, "startPanel");
         panel.putClientProperty("keyEventDispatcher", keyEventDispatcher);
     }
+
     private void createLocationSelectionPanel() {
         JPanel locationSelectionPanel = new JPanel(new BorderLayout());
         JLabel prompt = new JLabel("Choose a location to explore:", SwingConstants.CENTER);
@@ -431,52 +432,7 @@ public class GameInterfaceGUI extends JFrame {
                 if (completedLocations.contains(location.getId())) {
                     JOptionPane.showMessageDialog(this, "This location has already been completed!", "Warning", JOptionPane.WARNING_MESSAGE);
                 } else {
-                    try {
-                        // Start showing the location entry immediately
-                        outputArea.setText("You have entered " + location.getName() + ".\nPlaying mini-game...");
-
-                        // Complete location in background
-                        SwingWorker<Boolean, Void> worker = new SwingWorker<>() {
-                            @Override
-                            protected Boolean doInBackground() throws Exception {
-                                return completeLocation(location.getId());
-                            }
-
-                            @Override
-                            protected void done() {
-                                try {
-                                    if (get()) {  // if completion was successful
-                                        completedLocations.add(location.getId());
-                                        plushiesCollected++;
-                                        String progressText = getProgressionText(completedLocations.size());
-                                        dialogBox.clear();
-                                        dialogBox.showText(progressText);
-                                        locButton.setEnabled(false);
-                                        cardLayout.show(mainPanel, "miniGame");
-                                    } else {
-                                        JOptionPane.showMessageDialog(GameInterfaceGUI.this,
-                                                "Failed to update location status",
-                                                "Error",
-                                                JOptionPane.ERROR_MESSAGE);
-                                    }
-                                } catch (Exception ex) {
-                                    System.err.println("Error completing location: " + ex.getMessage());
-                                    JOptionPane.showMessageDialog(GameInterfaceGUI.this,
-                                            "Error: " + ex.getMessage(),
-                                            "Error",
-                                            JOptionPane.ERROR_MESSAGE);
-                                }
-                            }
-                        };
-                        worker.execute();
-
-                    } catch (Exception ex) {
-                        System.err.println("Error initiating location completion: " + ex.getMessage());
-                        JOptionPane.showMessageDialog(GameInterfaceGUI.this,
-                                "Error: " + ex.getMessage(),
-                                "Error",
-                                JOptionPane.ERROR_MESSAGE);
-                    }
+                    startMiniGame(location.getId());
                 }
             });
             if (completedLocations.contains(location.getId())) {
@@ -487,6 +443,82 @@ public class GameInterfaceGUI extends JFrame {
         locationButtonPanel.revalidate();
         locationButtonPanel.repaint();
     }
+
+    // New method to start a mini-game
+    private void startMiniGame(Long locationId) {
+        try {
+            // Get the current hero ID
+            Long heroId = currentHero != null ? currentHero.getId() : 1L; // Fallback to default hero if needed
+
+            // Create the appropriate mini-game using the factory
+            AbstractMiniGame miniGame = MiniGameFactory.createMiniGame(locationId, heroId, this);
+
+            // Set up completion callbacks
+            miniGame.setOnCompleteCallback(() -> {
+                // On successful completion
+                SwingWorker<Boolean, Void> worker = new SwingWorker<>() {
+                    @Override
+                    protected Boolean doInBackground() throws Exception {
+                        return completeLocation(locationId);
+                    }
+
+                    @Override
+                    protected void done() {
+                        try {
+                            if (get()) {  // if completion was successful
+                                completedLocations.add(locationId);
+                                plushiesCollected++;
+
+                                // Return to the start panel or check for boss fight
+                                if (plushiesCollected >= 5) {
+                                    cardLayout.show(mainPanel, "finalBoss");
+                                } else {
+                                    cardLayout.show(mainPanel, "startPanel");
+                                }
+                            } else {
+                                JOptionPane.showMessageDialog(GameInterfaceGUI.this,
+                                        "Failed to update location status",
+                                        "Error",
+                                        JOptionPane.ERROR_MESSAGE);
+                            }
+                        } catch (Exception ex) {
+                            System.err.println("Error completing location: " + ex.getMessage());
+                            JOptionPane.showMessageDialog(GameInterfaceGUI.this,
+                                    "Error: " + ex.getMessage(),
+                                    "Error",
+                                    JOptionPane.ERROR_MESSAGE);
+                        }
+                    }
+                };
+                worker.execute();
+            });
+
+            miniGame.setOnFailCallback(() -> {
+                // On failure
+                JOptionPane.showMessageDialog(this,
+                        "You failed the challenge! Try again.",
+                        "Game Over",
+                        JOptionPane.INFORMATION_MESSAGE);
+                cardLayout.show(mainPanel, "locationSelection");
+            });
+
+            // Add the mini-game panel to the card layout
+            mainPanel.add(miniGame.getGamePanel(), "miniGame-" + locationId);
+
+            // Show the mini-game panel and start the game
+            cardLayout.show(mainPanel, "miniGame-" + locationId);
+            miniGame.startGame();
+
+        } catch (Exception ex) {
+            System.err.println("Error starting mini-game: " + ex.getMessage());
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Error starting mini-game: " + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     private boolean completeLocation(Long locationId) {
         try {
             URL url = new URL("http://localhost:8080/location/" + locationId);
@@ -537,6 +569,72 @@ public class GameInterfaceGUI extends JFrame {
             return false;
         }
     }
+
+    // Keep this method as a fallback mini-game panel
+    private void createMiniGamePanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        outputArea = new JTextArea();
+        outputArea.setEditable(false);
+        panel.add(new JScrollPane(outputArea), BorderLayout.CENTER);
+
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 10, 10));
+        JButton winButton = new JButton("Win Mini-Game");
+        winButton.addActionListener(e -> {
+            if (plushiesCollected < 5) {
+                cardLayout.show(mainPanel, "startPanel");
+            } else {
+                cardLayout.show(mainPanel, "finalBoss");
+            }
+        });
+        JButton loseButton = new JButton("Lose Mini-Game");
+        loseButton.addActionListener(e -> {
+            outputArea.setText("You lost the mini-game. Game Over!");
+            restartGame();
+        });
+        buttonPanel.add(winButton);
+        buttonPanel.add(loseButton);
+        panel.add(buttonPanel, BorderLayout.SOUTH);
+
+        mainPanel.add(panel, "miniGame");
+    }
+
+    private void createFinalBossPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        JLabel label = new JLabel("FINAL BOSS!", SwingConstants.CENTER);
+        label.setFont(new Font("Arial", Font.BOLD, 24));
+        panel.add(label, BorderLayout.CENTER);
+
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 10, 10));
+        JButton winButton = new JButton("Win Final Boss");
+        winButton.addActionListener(e -> {
+            outputArea.setText("Fighting final boss...\nVictory!");
+            cardLayout.show(mainPanel, "finalCongratulations");
+        });
+        JButton loseButton = new JButton("Lose Final Boss");
+        loseButton.addActionListener(e -> {
+            outputArea.setText("You lost to the final boss. Game Over!");
+            restartGame();
+        });
+        buttonPanel.add(winButton);
+        buttonPanel.add(loseButton);
+        panel.add(buttonPanel, BorderLayout.SOUTH);
+
+        mainPanel.add(panel, "finalBoss");
+    }
+
+    private void createFinalCongratulationsPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        JLabel label = new JLabel("Congratulations! You've completed the adventure!", SwingConstants.CENTER);
+        label.setFont(new Font("Arial", Font.BOLD, 20));
+        panel.add(label, BorderLayout.CENTER);
+
+        JButton quitButton = new JButton("Quit");
+        quitButton.addActionListener(e -> System.exit(0));
+        panel.add(quitButton, BorderLayout.SOUTH);
+
+        mainPanel.add(panel, "finalCongratulations");
+    }
+
     public class PlushieDialog extends JDialog {
         public PlushieDialog(JFrame parent, List<String> plushies) {
             super(parent, "Your Plushie Collection", true);
@@ -599,68 +697,6 @@ public class GameInterfaceGUI extends JFrame {
             panel.add(nameLabel);
             return panel;
         }
-    }
-    private void createMiniGamePanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        outputArea = new JTextArea();
-        outputArea.setEditable(false);
-        panel.add(new JScrollPane(outputArea), BorderLayout.CENTER);
-
-        JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 10, 10));
-        JButton winButton = new JButton("Win Mini-Game");
-        winButton.addActionListener(e -> {
-            if (plushiesCollected < 5) {
-                cardLayout.show(mainPanel, "startPanel");
-            } else {
-                cardLayout.show(mainPanel, "finalBoss");
-            }
-        });
-        JButton loseButton = new JButton("Lose Mini-Game");
-        loseButton.addActionListener(e -> {
-            outputArea.setText("You lost the mini-game. Game Over!");
-            restartGame();
-        });
-        buttonPanel.add(winButton);
-        buttonPanel.add(loseButton);
-        panel.add(buttonPanel, BorderLayout.SOUTH);
-
-        mainPanel.add(panel, "miniGame");
-    }
-
-    private void createFinalBossPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        JLabel label = new JLabel("FINAL BOSS!", SwingConstants.CENTER);
-        label.setFont(new Font("Arial", Font.BOLD, 24));
-        panel.add(label, BorderLayout.CENTER);
-
-        JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 10, 10));
-        JButton winButton = new JButton("Win Final Boss");
-        winButton.addActionListener(e -> {
-            outputArea.setText("Fighting final boss...\nVictory!");
-            cardLayout.show(mainPanel, "finalCongratulations");
-        });
-        JButton loseButton = new JButton("Lose Final Boss");
-        loseButton.addActionListener(e -> {
-            outputArea.setText("You lost to the final boss. Game Over!");
-            restartGame();
-        });
-        buttonPanel.add(winButton);
-        buttonPanel.add(loseButton);
-        panel.add(buttonPanel, BorderLayout.SOUTH);
-
-        mainPanel.add(panel, "finalBoss");
-    }
-    private void createFinalCongratulationsPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        JLabel label = new JLabel("Congratulations! You've completed the adventure!", SwingConstants.CENTER);
-        label.setFont(new Font("Arial", Font.BOLD, 20));
-        panel.add(label, BorderLayout.CENTER);
-
-        JButton quitButton = new JButton("Quit");
-        quitButton.addActionListener(e -> System.exit(0));
-        panel.add(quitButton, BorderLayout.SOUTH);
-
-        mainPanel.add(panel, "finalCongratulations");
     }
 
     private void restartGame() {
@@ -747,15 +783,5 @@ public class GameInterfaceGUI extends JFrame {
     public void dispose() {
         stopMusic();
         super.dispose();
-    }
-
-    public static void main(String[] args) {
-        String baseUrl = "http://localhost:8080";
-        HeroService heroService = new HeroService(baseUrl);
-        LocationService locationService = new LocationService(baseUrl);
-        SwingUtilities.invokeLater(() -> {
-            GameInterfaceGUI gui = new GameInterfaceGUI(heroService, locationService);
-            gui.setVisible(true);
-        });
     }
 }

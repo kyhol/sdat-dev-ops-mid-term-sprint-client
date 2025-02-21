@@ -5,7 +5,7 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 
 /**
- * Simplified Ancient Temple Mini-Game (Location ID 4) - Kyle
+ * Simplified Ancient Temple Mini-Game (Location ID 4) - Kyle TEST
  */
 public class AncientTempleMiniGame extends AbstractMiniGame {
     private boolean gameCompleted = false;

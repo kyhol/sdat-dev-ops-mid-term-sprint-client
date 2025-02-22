@@ -3,10 +3,9 @@ package com.keyin.ui;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
-
 // Sound imports (ensure these are available in your JDK)
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -396,7 +395,6 @@ public class GameInterfaceGUI extends JFrame {
                 // If you want the ENTIRE game to reset on fail, do:
                 restartGame();
                 // Otherwise, show "locationSelection" or something else.
-                // cardLayout.show(mainPanel, "locationSelection");
             });
 
             // 3) Add the new panel to the card layout
@@ -573,16 +571,39 @@ public class GameInterfaceGUI extends JFrame {
     // (Ensures references to PlushieDialog compile properly.)
     // -----------------------------------------------------------------------------------
     public class PlushieDialog extends JDialog {
+        // Optional: define color-coded plushies or descriptions
+        private final Map<String, Color> plushieColors = new HashMap<>();
+        private final Map<String, String> plushieDescriptions = new HashMap<>();
+
         public PlushieDialog(JFrame parent, List<String> plushies) {
             super(parent, "Your Plushie Collection", true);
-            setSize(400, 300);
+            setSize(600, 400);
             setLocationRelativeTo(parent);
+
+            // Prepopulate some color associations or default
+            plushieColors.put("UNDERWORLD PLUSHIE", new Color(128, 0, 128)); // purple
+            plushieColors.put("DRAGON'S PEAK PLUSHIE", new Color(139, 69, 19)); // brown
+            plushieColors.put("MYSTIC FOREST PLUSHIE", new Color(0, 100, 0)); // green
+            plushieColors.put("SHADOW REALM PLUSHIE", new Color(64, 64, 64)); // dark gray
+            plushieColors.put("SKY SANCTUARY PLUSHIE", new Color(70, 130, 180)); // steelBlue
+
+            // Prepopulate some descriptions or ASCII
+            plushieDescriptions.put("UNDERWORLD PLUSHIE", 
+                "A plush from the dark underworld.\nMysterious energies swirl around it.");
+            plushieDescriptions.put("DRAGON'S PEAK PLUSHIE",
+                "A fiery plush from high peaks.\nIt might roar when squeezed!");
+            plushieDescriptions.put("MYSTIC FOREST PLUSHIE", 
+                "Soft and earthy plush with vine-like patterns.\nIt smells of pine!");
+            plushieDescriptions.put("SHADOW REALM PLUSHIE", 
+                "Creepy but cool.\nIt seems to fade if you don't look closely!");
+            plushieDescriptions.put("SKY SANCTUARY PLUSHIE", 
+                "Cloud-like plush, light as air.\nYou feel a breeze around it.");
 
             JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
             mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
             JLabel titleLabel = new JLabel("Your Magical Plushie Collection", SwingConstants.CENTER);
-            titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
+            titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
             mainPanel.add(titleLabel, BorderLayout.NORTH);
 
             JPanel plushiePanel = new JPanel();
@@ -591,12 +612,13 @@ public class GameInterfaceGUI extends JFrame {
             if (plushies.isEmpty()) {
                 JLabel emptyLabel = new JLabel("No plushies collected yet!");
                 emptyLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+                emptyLabel.setFont(new Font("Serif", Font.ITALIC, 18));
                 plushiePanel.add(emptyLabel);
             } else {
                 for (String plushie : plushies) {
                     JPanel plushieItemPanel = createPlushieItemPanel(plushie);
                     plushiePanel.add(plushieItemPanel);
-                    plushiePanel.add(Box.createRigidArea(new Dimension(0, 10)));
+                    plushiePanel.add(Box.createRigidArea(new Dimension(0, 15)));
                 }
             }
 
@@ -605,6 +627,7 @@ public class GameInterfaceGUI extends JFrame {
             mainPanel.add(scrollPane, BorderLayout.CENTER);
 
             JButton closeButton = new JButton("Close");
+            closeButton.setFont(new Font("Serif", Font.BOLD, 16));
             closeButton.addActionListener(e -> dispose());
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
             buttonPanel.add(closeButton);
@@ -613,20 +636,58 @@ public class GameInterfaceGUI extends JFrame {
             add(mainPanel);
         }
 
+        /**
+         * Creates a single plushie "card" with a background color, 
+         * a name label, and a short description.
+         */
         private JPanel createPlushieItemPanel(String plushieName) {
             JPanel panel = new JPanel();
             panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
             panel.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(Color.GRAY),
-                    BorderFactory.createEmptyBorder(5, 5, 5, 5)
+                    BorderFactory.createLineBorder(Color.DARK_GRAY, 2),
+                    BorderFactory.createEmptyBorder(10, 10, 10, 10)
             ));
-            panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 75));
+            panel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
+            // Decide background color
+            // If plushieName isn't in the map, pick random color
+            Color bgColor = plushieColors.getOrDefault(plushieName.toUpperCase(),
+                    new Color((int) (Math.random() * 0x1000000)));
+            panel.setBackground(bgColor);
+
+            // Title
             JLabel nameLabel = new JLabel(plushieName);
-            nameLabel.setFont(new Font("Arial", Font.BOLD, 14));
+            nameLabel.setFont(new Font("Arial", Font.BOLD, 18));
+            nameLabel.setForeground(Color.WHITE);
             nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
+            // Description
+            String desc = plushieDescriptions.getOrDefault(plushieName.toUpperCase(),
+                    "An unknown but still magical plush!");
+            JTextArea descArea = new JTextArea(desc);
+            descArea.setEditable(false);
+            descArea.setOpaque(false);
+            descArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
+            descArea.setForeground(Color.WHITE);
+            descArea.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            // Hover effect (brighten background)
+            panel.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    panel.setBackground(bgColor.brighter());
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    panel.setBackground(bgColor);
+                }
+            });
+
             panel.add(nameLabel);
+            panel.add(Box.createRigidArea(new Dimension(0, 5)));
+            panel.add(descArea);
+
             return panel;
         }
     }

@@ -110,5 +110,20 @@ public abstract class AbstractMiniGame {
     // Return the panel to be added to the card layout
     public JPanel getGamePanel() {
         return gamePanel;
+    }// Add these to AbstractMiniGame.java
+    public Long getLocationId() {
+        return locationId;
+    }
+
+    public Long getHeroId() {
+        return heroId;
+    }
+
+    public DialogBox getDialogBox() {
+        return dialogBox;
+    }
+
+    public GameArtPanel getArtPanel() {
+        return artPanel;
     }
 }

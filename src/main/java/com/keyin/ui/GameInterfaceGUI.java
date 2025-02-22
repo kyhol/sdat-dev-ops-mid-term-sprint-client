@@ -343,9 +343,32 @@ public class GameInterfaceGUI extends JFrame {
     private void startMiniGame(Long locationId) {
         try {
             Long heroId = currentHero != null ? currentHero.getId() : 1L;
+            System.out.println("GameInterfaceGUI: Starting minigame for location " + locationId);
+
             // Delegate mini-game launching to MiniGameService
-            miniGameService.startMiniGame(locationId, heroId, this, () -> {
-                // After mini-game completion, mark the location as complete via LocationService.
+            AbstractMiniGame miniGame = MiniGameFactory.createMiniGame(locationId, heroId, this);
+
+            // Get the game panel
+            JPanel gamePanel = miniGame.getGamePanel();
+
+            // Add the game panel to the card layout if it doesn't exist
+            String panelName = "miniGame-" + locationId;
+            boolean panelExists = false;
+            for (Component comp : mainPanel.getComponents()) {
+                if (comp instanceof JPanel && comp.getName() != null && comp.getName().equals(panelName)) {
+                    panelExists = true;
+                    break;
+                }
+            }
+
+            if (!panelExists) {
+                gamePanel.setName(panelName);
+                mainPanel.add(gamePanel, panelName);
+            }
+
+            // Set up callbacks
+            miniGame.setOnCompleteCallback(() -> {
+                System.out.println("GameInterfaceGUI: Minigame completed for location " + locationId);
                 boolean success = locationService.completeLocation(locationId, allLocations, collectedPlushies);
                 if (success) {
                     completedLocations.add(locationId);
@@ -356,11 +379,21 @@ public class GameInterfaceGUI extends JFrame {
                         cardLayout.show(mainPanel, "startPanel");
                     }
                 } else {
-                    JOptionPane.showMessageDialog(GameInterfaceGUI.this,
+                    JOptionPane.showMessageDialog(this,
                             "Failed to update location status",
                             "Error", JOptionPane.ERROR_MESSAGE);
                 }
             });
+
+            miniGame.setOnFailCallback(() -> {
+                System.out.println("GameInterfaceGUI: Minigame failed for location " + locationId);
+                cardLayout.show(mainPanel, "locationSelection");
+            });
+
+            // Start the mini-game and show its panel
+            miniGame.startGame();
+            cardLayout.show(mainPanel, panelName);
+
         } catch (Exception ex) {
             System.err.println("Error starting mini-game: " + ex.getMessage());
             ex.printStackTrace();
@@ -369,7 +402,6 @@ public class GameInterfaceGUI extends JFrame {
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-
     // -----------------------------------------------------------------------------------
     // MINI-GAME PANEL (FALLBACK)
     // -----------------------------------------------------------------------------------

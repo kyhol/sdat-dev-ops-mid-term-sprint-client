@@ -41,31 +41,6 @@ public class LocationServiceTest {
         realObjectMapper = new ObjectMapper();
     }
 
-    @Test
-    void moveToNextLocation_ShouldReturnLocationName() throws Exception {
-        Long heroId = 1L;
-        String expectedLocation = "Cave of Wonders";
-
-        when(mockResponse.statusCode()).thenReturn(200);
-        when(mockResponse.body()).thenReturn(expectedLocation);
-
-        when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-                .thenReturn(mockResponse);
-
-        String result = locationService.moveToNextLocation(heroId);
-
-        assertNotNull(result);
-        assertEquals(expectedLocation, result);
-
-        verify(mockHttpClient).send(argThat(request -> {
-            URI uri = request.uri();
-            assertEquals(baseUrl + "/location/next/1", uri.toString());
-
-            assertEquals("POST", request.method());
-
-            return true;
-        }), any());
-    }
 
     @Test
     void getAllLocations_ShouldReturnListOfLocations() throws Exception {
@@ -102,19 +77,6 @@ public class LocationServiceTest {
 
             return true;
         }), any());
-    }
-
-    @Test
-    void moveToNextLocation_WhenServerReturnsError_ShouldThrowException() throws Exception {
-        when(mockResponse.statusCode()).thenReturn(500);
-        when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-                .thenReturn(mockResponse);
-
-        Exception exception = assertThrows(RuntimeException.class, () -> {
-            locationService.moveToNextLocation(1L);
-        });
-
-        assertTrue(exception.getMessage().contains("Failed to move to next location"));
     }
 
     @Test

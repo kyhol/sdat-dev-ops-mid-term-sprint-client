@@ -25,7 +25,7 @@ import com.keyin.minigame.MiniGameService;
  * GameInterfaceGUI now only handles user interface responsibilities:
  * - It displays screens using a CardLayout.
  * - It processes user input (button clicks, key events, etc.).
- * - It delegates all backend data retrieval, mini-game creation, and plushie awarding 
+ * - It delegates all backend data retrieval, mini-game creation, and plushie awarding
  *   to dedicated service classes (LocationService, MiniGameService, HeroService).
  * - Only the sound management logic remains here.
  */
@@ -33,7 +33,7 @@ public class GameInterfaceGUI extends JFrame {
 
     private final HeroService heroService;
     private final LocationService locationService;
-    private final MiniGameService miniGameService; 
+    private final MiniGameService miniGameService;
     private HeroDTO currentHero;
 
     private CardLayout cardLayout;
@@ -67,8 +67,17 @@ public class GameInterfaceGUI extends JFrame {
     // -----------------------------------------------------------------------------------
     private void initializeUI() {
         setTitle("RPG Adventure");
+
+        // Make sure we exit on close
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        // Basic size
         setSize(600, 500);
+
+        // Full-screen on start
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
+
+        // Center on screen if not in full-screen (just in case)
         setLocationRelativeTo(null);
 
         cardLayout = new CardLayout();
@@ -316,8 +325,8 @@ public class GameInterfaceGUI extends JFrame {
     private void populateLocationButtons() {
         locationButtonPanel.removeAll();
         List<LocationDTO> filteredLocations = allLocations.stream()
-            .filter(location -> location.getId() != 1 && location.getId() != 7)
-            .collect(Collectors.toList());
+                .filter(location -> location.getId() != 1 && location.getId() != 7)
+                .collect(Collectors.toList());
 
         for (LocationDTO location : filteredLocations) {
             JButton locButton = new JButton(location.getName());
@@ -338,33 +347,30 @@ public class GameInterfaceGUI extends JFrame {
     }
 
     // -----------------------------------------------------------------------------------
-    // START MINI-GAME
+    // START MINI-GAME (MODIFIED)
     // -----------------------------------------------------------------------------------
     private void startMiniGame(Long locationId) {
         try {
             Long heroId = currentHero != null ? currentHero.getId() : 1L;
             System.out.println("GameInterfaceGUI: Starting minigame for location " + locationId);
 
-            // Delegate mini-game launching to MiniGameService
-            AbstractMiniGame miniGame = MiniGameFactory.createMiniGame(locationId, heroId, this);
-
-            // Get the game panel
-            JPanel gamePanel = miniGame.getGamePanel();
-
-            // Add the game panel to the card layout if it doesn't exist
+            // 1) Remove any old panel named "miniGame-locationId", so we don't re-use stale data
             String panelName = "miniGame-" + locationId;
-            boolean panelExists = false;
             for (Component comp : mainPanel.getComponents()) {
-                if (comp instanceof JPanel && comp.getName() != null && comp.getName().equals(panelName)) {
-                    panelExists = true;
+                if (comp instanceof JPanel panel
+                    && panel.getName() != null
+                    && panel.getName().equals(panelName)) {
+                    mainPanel.remove(panel);
                     break;
                 }
             }
+            mainPanel.revalidate();
+            mainPanel.repaint();
 
-            if (!panelExists) {
-                gamePanel.setName(panelName);
-                mainPanel.add(gamePanel, panelName);
-            }
+            // 2) Create a brand-new mini-game object each time
+            AbstractMiniGame miniGame = MiniGameFactory.createMiniGame(locationId, heroId, this);
+            JPanel gamePanel = miniGame.getGamePanel();
+            gamePanel.setName(panelName);
 
             // Set up callbacks
             miniGame.setOnCompleteCallback(() -> {
@@ -387,11 +393,19 @@ public class GameInterfaceGUI extends JFrame {
 
             miniGame.setOnFailCallback(() -> {
                 System.out.println("GameInterfaceGUI: Minigame failed for location " + locationId);
-                cardLayout.show(mainPanel, "locationSelection");
+                // If you want the ENTIRE game to reset on fail, do:
+                restartGame();
+                // Otherwise, show "locationSelection" or something else.
+                // cardLayout.show(mainPanel, "locationSelection");
             });
 
-            // Start the mini-game and show its panel
+            // 3) Add the new panel to the card layout
+            mainPanel.add(gamePanel, panelName);
+
+            // 4) Start the mini-game
             miniGame.startGame();
+
+            // 5) Show the new panel
             cardLayout.show(mainPanel, panelName);
 
         } catch (Exception ex) {
@@ -402,6 +416,7 @@ public class GameInterfaceGUI extends JFrame {
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
+
     // -----------------------------------------------------------------------------------
     // MINI-GAME PANEL (FALLBACK)
     // -----------------------------------------------------------------------------------

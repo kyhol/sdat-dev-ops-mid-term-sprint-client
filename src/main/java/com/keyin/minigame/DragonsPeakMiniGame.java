@@ -9,6 +9,7 @@ import java.awt.event.KeyEvent;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -18,33 +19,45 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.Timer;
 
 /**
- * DragonsPeakMiniGame
+ * DragonsPeakMiniGame - Hangman-style mini-game for the word "UNDERWORLD".
  * 
- * This mini-game is a simple Hangman game with the word "UNDERWORLD."
- * Once the player guesses all letters, it calls onCompleteCallback,
- * which your GameInterfaceGUI uses to mark the location completed
- * and show the next panel ("startPanel" or "locationSelection").
+ * Features:
+ *  - Must guess the entire word (no "Win" button).
+ *  - Straight game over if you run out of guesses -> triggers onFailCallback,
+ *    which can call `restartGame()` in GameInterfaceGUI (or do whatever).
+ *  - "Roar" animation on correct guesses.
+ *  - "Rage" animation if you guess wrong twice in a row.
+ *  - Plushie only awarded if you fully guess the word (onCompleteCallback).
+ * 
+ *  Now also overrides `startGame()` to reset everything each time
+ *  it's called, guaranteeing a fresh puzzle on re-entry.
  */
 public class DragonsPeakMiniGame extends AbstractMiniGame {
 
-    // Lazy initialization fields
     private String wordToGuess;
     private Set<Character> guessedLetters;
-
-    // Maximum allowed wrong guesses
-    private final int maxWrongGuesses = 6;
     private int wrongGuesses = 0;
+    private final int maxWrongGuesses = 6;
 
-    // GUI components
+    // Track if the game was truly won
+    private boolean wonGame = false;
+
+    // This will let us do a "rage" animation if the player misses multiple times in a row
+    private int consecutiveWrongGuesses = 0;
+
     private JLabel wordProgressLabel;
     private JLabel demonTauntLabel;
     private JTextArea asciiArtArea;
     private JTextField guessField;
+    private JLabel storyLabel;
+
+    private Timer animationTimer;
     private JButton guessButton;
 
-    // Taunt messages for wrong and correct guesses
+    // Taunts for correct/wrong guesses
     private final String[] wrongTaunts = {
         "Bael: Ha! You missed that, mortal!",
         "Bael: Is that the best you can do?",
@@ -52,6 +65,7 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         "Bael: Pathetic! Try harder!",
         "Bael: Your guesses are laughable!"
     };
+
     private final String[] correctTaunts = {
         "Bael: Hmph, you got one... for now.",
         "Bael: Not bad, but don't get cocky!",
@@ -59,173 +73,168 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         "Bael: You may have some potential..."
     };
 
-    // Completion callbacks to signal end of mini-game
-    protected Runnable onCompleteCallback;
-    protected Runnable onFailCallback;
+    // Extra "rage" taunts if the dragon gets furious
+    private final String[] rageTaunts = {
+        "Bael: You dare continue this insolence?!",
+        "Bael: My fury will consume you!",
+        "Bael: RAAAAAAHHHH!!!",
+        "Bael: I'll scorch the very ground you stand on!"
+    };
 
-    // -------------------------------
-    // Constructor
-    // -------------------------------
+    /**
+     * Constructor
+     */
     public DragonsPeakMiniGame(Long locationId, Long heroId, JFrame parentFrame) {
         super(locationId, heroId, parentFrame);
-        // We'll do the puzzle "UNDERWORLD" by default
     }
 
-    // -------------------------------
-    // Lazy getter for wordToGuess; defaults to "UNDERWORLD"
-    // -------------------------------
-    private String getWordToGuess() {
-        if (wordToGuess == null) {
-            wordToGuess = "UNDERWORLD";
-        }
-        return wordToGuess;
-    }
-
-    // -------------------------------
-    // Lazy getter for guessedLetters; pre-populates with D, R, and O
-    // -------------------------------
-    private Set<Character> getGuessedLetters() {
-        if (guessedLetters == null) {
-            guessedLetters = new HashSet<>();
-            // If you want to start with some letters guessed:
-            guessedLetters.add('D');
-            guessedLetters.add('R');
-            guessedLetters.add('O');
-        }
-        return guessedLetters;
-    }
-
-    // -------------------------------
-    // Callback setters
-    // -------------------------------
-    public void setOnCompleteCallback(Runnable callback) {
-        this.onCompleteCallback = callback;
-    }
-
-    public void setOnFailCallback(Runnable callback) {
-        this.onFailCallback = callback;
-    }
-
-    // -------------------------------
-    // Customize UI
-    // -------------------------------
     @Override
     protected void customizeUI() {
-        parentFrame.getContentPane().removeAll();
+        // Do initial setups
+        wordToGuess = "UNDERWORLD";
+        guessedLetters = new HashSet<>();
 
+        // Main container
         JPanel gamePanel = new JPanel(new BorderLayout(10, 10));
+        gamePanel.setBackground(Color.BLACK);
 
-        // ASCII Art Display (top)
+        // Title
+        JLabel titleLabel = new JLabel("DRAGON'S PEAK", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 32));
+        titleLabel.setForeground(Color.RED);
+        titleLabel.setBorder(BorderFactory.createLineBorder(Color.BLUE, 3));
+        gamePanel.add(titleLabel, BorderLayout.NORTH);
+
+        // ASCII text area on the left
         asciiArtArea = new JTextArea(getGameSpecificAsciiArt());
         asciiArtArea.setEditable(false);
         asciiArtArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
-        asciiArtArea.setRows(8);
-        asciiArtArea.setBackground(parentFrame.getBackground());
-        gamePanel.add(new JScrollPane(asciiArtArea), BorderLayout.NORTH);
+        asciiArtArea.setBackground(Color.BLACK);
+        asciiArtArea.setForeground(Color.WHITE);
+        gamePanel.add(new JScrollPane(asciiArtArea), BorderLayout.WEST);
 
-        // Center panel for word progress and demon taunts
-        JPanel centerPanel = new JPanel(new GridLayout(2, 1));
+        // Center panel with word progress, demon taunt, storyline
+        JPanel centerPanel = new JPanel(new GridLayout(3, 1));
+        centerPanel.setBackground(Color.BLACK);
+
         wordProgressLabel = new JLabel(getWordProgress(), SwingConstants.CENTER);
         wordProgressLabel.setFont(new Font("Serif", Font.BOLD, 28));
+        wordProgressLabel.setForeground(Color.WHITE);
         centerPanel.add(wordProgressLabel);
 
         demonTauntLabel = new JLabel("Bael: Prepare to be crushed!", SwingConstants.CENTER);
         demonTauntLabel.setFont(new Font("Serif", Font.ITALIC, 18));
         demonTauntLabel.setForeground(Color.RED);
         centerPanel.add(demonTauntLabel);
+
+        storyLabel = new JLabel("You feel the searing heat of Bael's breath...", SwingConstants.CENTER);
+        storyLabel.setFont(new Font("Serif", Font.PLAIN, 16));
+        storyLabel.setForeground(Color.ORANGE);
+        centerPanel.add(storyLabel);
+
         gamePanel.add(centerPanel, BorderLayout.CENTER);
 
-        // Bottom panel: Letter input
+        // Input panel (guess field + button)
         JPanel inputPanel = new JPanel(new FlowLayout());
+        inputPanel.setBackground(Color.BLACK);
+
         JLabel promptLabel = new JLabel("Enter a letter: ");
         promptLabel.setFont(new Font("Serif", Font.PLAIN, 18));
+        promptLabel.setForeground(Color.WHITE);
+
         guessField = new JTextField(5);
         guessField.setFont(new Font("Serif", Font.PLAIN, 18));
+
         guessButton = new JButton("Guess");
         guessButton.setFont(new Font("Serif", Font.PLAIN, 18));
-        inputPanel.add(promptLabel);
-        inputPanel.add(guessField);
-        inputPanel.add(guessButton);
-        gamePanel.add(inputPanel, BorderLayout.SOUTH);
 
-        // Attach listeners for guesses
         guessButton.addActionListener(e -> processGuess());
         guessField.addActionListener(e -> processGuess());
 
-        parentFrame.getContentPane().add(gamePanel);
-        parentFrame.revalidate();
-        parentFrame.repaint();
+        inputPanel.add(promptLabel);
+        inputPanel.add(guessField);
+        inputPanel.add(guessButton);
+
+        gamePanel.add(inputPanel, BorderLayout.SOUTH);
+
+        // We remove the default art panel from AbstractMiniGame and add our custom layout
+        this.gamePanel.remove(artPanel);
+        this.gamePanel.add(gamePanel, BorderLayout.CENTER);
     }
 
-    // -------------------------------
-    // Key press handling for letters
-    // -------------------------------
     @Override
     protected void handleKeyPress(KeyEvent e) {
-        char guessedChar = Character.toUpperCase(e.getKeyChar());
-        if (Character.isLetter(guessedChar)) {
-            processGuess(guessedChar);
-        }
+        // If you'd like a key-based skip or other action, do it here.
     }
 
-    // Overload processGuess() to handle text field input
+    /**
+     * Called whenever the user clicks "Guess" or presses Enter in guessField.
+     */
     private void processGuess() {
         String input = guessField.getText().trim().toUpperCase();
         guessField.setText("");
+
         if (input.length() != 1 || !Character.isLetter(input.charAt(0))) {
-            JOptionPane.showMessageDialog(
-                parentFrame,
+            JOptionPane.showMessageDialog(parentFrame,
                 "Please enter a single letter.",
                 "Invalid Input",
-                JOptionPane.WARNING_MESSAGE
-            );
+                JOptionPane.WARNING_MESSAGE);
             return;
         }
+
         processGuess(input.charAt(0));
     }
 
-    // Actual guess processing
+    /**
+     * Main logic for guess correctness, ASCII updates, game over checks, etc.
+     */
     private void processGuess(char guessedChar) {
-        // Check if letter was guessed before
-        if (getGuessedLetters().contains(guessedChar)) {
-            JOptionPane.showMessageDialog(
-                parentFrame,
+        if (guessedLetters.contains(guessedChar)) {
+            JOptionPane.showMessageDialog(parentFrame,
                 "You've already guessed that letter!",
                 "Duplicate Guess",
-                JOptionPane.INFORMATION_MESSAGE
-            );
+                JOptionPane.INFORMATION_MESSAGE);
             return;
         }
 
-        // Mark letter as guessed
-        getGuessedLetters().add(guessedChar);
+        guessedLetters.add(guessedChar);
 
-        // Correct guess or wrong guess?
-        if (getWordToGuess().indexOf(guessedChar) >= 0) {
+        if (wordToGuess.indexOf(guessedChar) >= 0) {
+            // Correct guess
+            consecutiveWrongGuesses = 0;
             updateWordProgress();
-            updateDemonTaunt(getRandomTaunt(correctTaunts));
+            demonTauntLabel.setText(getRandomTaunt(correctTaunts));
+            storyLabel.setText("Bael snarls, but you feel a surge of confidence...");
+            showRoarAnimation();
+
         } else {
+            // Wrong guess
             wrongGuesses++;
-            updateAsciiArt();
-            updateDemonTaunt(getRandomTaunt(wrongTaunts));
+            consecutiveWrongGuesses++;
+            asciiArtArea.setText(getGameSpecificAsciiArt());
+
+            if (consecutiveWrongGuesses >= 2) {
+                demonTauntLabel.setText(getRandomTaunt(rageTaunts));
+                showRageAnimation();
+            } else {
+                demonTauntLabel.setText(getRandomTaunt(wrongTaunts));
+            }
+            storyLabel.setText("A gust of scorching wind grazes you. Stay focused!");
         }
 
-        // Win condition
         if (isWordGuessed()) {
-            updateDemonTaunt("Bael: No! This cannot be... defeated by mere letters?!");
-            // Show a final message in the dialog
+            wonGame = true;
             dialogBox.showText(
-                "Congratulations! You've defeated Bael by guessing: " + getWordToGuess()
-                + "\nYou earned the Dragon's Peak Plushie!",
-                this::completeGame
+                "Congratulations! You've bested Bael!\nYou earned the Dragon's Peak Plushie!",
+                () -> {
+                    if (onCompleteCallback != null) {
+                        onCompleteCallback.run();
+                    }
+                }
             );
-        }
-        // Lose condition
-        else if (wrongGuesses >= maxWrongGuesses) {
-            updateDemonTaunt("Bael: Hahaha! Your puny guesses are worthless!");
+        } else if (wrongGuesses >= maxWrongGuesses) {
             dialogBox.showText(
-                "Game Over! Bael reigns! The word was: " + getWordToGuess()
-                + "\nRestarting mini-game...",
+                "GAME OVER! Bael reigns victorious!\nThe word was: " + wordToGuess,
                 () -> {
                     if (onFailCallback != null) {
                         onFailCallback.run();
@@ -235,137 +244,260 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         }
     }
 
-    // -------------------------------
-    // Helper methods to update UI
-    // -------------------------------
+    /**
+     * Show a short "roaring" ASCII, then revert after 1 second.
+     */
+    private void showRoarAnimation() {
+        if (animationTimer != null && animationTimer.isRunning()) {
+            animationTimer.stop();
+        }
+        asciiArtArea.setText(getDragonAsciiRoar() + "\n\n" + getHangmanState());
+
+        animationTimer = new Timer(1000, e -> {
+            asciiArtArea.setText(getGameSpecificAsciiArt());
+            animationTimer.stop();
+        });
+        animationTimer.start();
+    }
+
+    /**
+     * Show a short "rage" ASCII (angrier than roar), then revert after 1 second.
+     */
+    private void showRageAnimation() {
+        if (animationTimer != null && animationTimer.isRunning()) {
+            animationTimer.stop();
+        }
+        asciiArtArea.setText(getDragonAsciiRage() + "\n\n" + getHangmanState());
+
+        animationTimer = new Timer(1000, e -> {
+            asciiArtArea.setText(getGameSpecificAsciiArt());
+            animationTimer.stop();
+        });
+        animationTimer.start();
+    }
+
+    /**
+     * Update the word progress label with underscores or letters.
+     */
     private void updateWordProgress() {
         wordProgressLabel.setText(getWordProgress());
     }
 
-    private void updateAsciiArt() {
-        asciiArtArea.setText(getGameSpecificAsciiArt());
-    }
-
-    private void updateDemonTaunt(String message) {
-        demonTauntLabel.setText(message);
-    }
-
-    private String getRandomTaunt(String[] taunts) {
-        return taunts[(int) (Math.random() * taunts.length)];
-    }
-
-    // Build the visual "progress" for the puzzle
+    /**
+     * Return a spaced-out version of the puzzle's progress.
+     */
     private String getWordProgress() {
-        String actualWord = getWordToGuess();
         StringBuilder progress = new StringBuilder();
-        for (char c : actualWord.toCharArray()) {
-            if (getGuessedLetters().contains(c)) {
-                progress.append(c).append(" ");
-            } else {
-                progress.append("_ ");
-            }
+        for (char c : wordToGuess.toCharArray()) {
+            progress.append(guessedLetters.contains(c) ? (c + " ") : "_ ");
         }
         return progress.toString().trim();
     }
 
-    // Check if all letters are guessed
     private boolean isWordGuessed() {
-        String actualWord = getWordToGuess();
-        for (char c : actualWord.toCharArray()) {
-            if (!getGuessedLetters().contains(c)) {
+        for (char c : wordToGuess.toCharArray()) {
+            if (!guessedLetters.contains(c)) {
                 return false;
             }
         }
         return true;
     }
 
-    // -------------------------------
-    // Hangman ASCII art stages
-    // -------------------------------
+    private String getRandomTaunt(String[] taunts) {
+        return taunts[(int) (Math.random() * taunts.length)];
+    }
+
     @Override
     protected String getGameSpecificAsciiArt() {
-        switch (wrongGuesses) {
-            case 0: return
-                " +---+\n"
-              + " |   |\n"
-              + "     |\n"
-              + "     |\n"
-              + "     |\n"
-              + "     |\n"
-              + "=========";
-            case 1: return
-                " +---+\n"
-              + " |   |\n"
-              + " O   |\n"
-              + "     |\n"
-              + "     |\n"
-              + "     |\n"
-              + "=========";
-            case 2: return
-                " +---+\n"
-              + " |   |\n"
-              + " O   |\n"
-              + " |   |\n"
-              + "     |\n"
-              + "     |\n"
-              + "=========";
-            case 3: return
-                " +---+\n"
-              + " |   |\n"
-              + " O   |\n"
-              + "/|   |\n"
-              + "     |\n"
-              + "     |\n"
-              + "=========";
-            case 4: return
-                " +---+\n"
-              + " |   |\n"
-              + " O   |\n"
-              + "/|\\  |\n"
-              + "     |\n"
-              + "     |\n"
-              + "=========";
-            case 5: return
-                " +---+\n"
-              + " |   |\n"
-              + " O   |\n"
-              + "/|\\  |\n"
-              + "/    |\n"
-              + "     |\n"
-              + "=========";
-            case 6: return
-                " +---+\n"
-              + " |   |\n"
-              + " O   |\n"
-              + "/|\\  |\n"
-              + "/ \\  |\n"
-              + "     |\n"
-              + "=========";
-            default: return "";
-        }
+        return getDragonAscii() + "\n\n" + getHangmanState();
     }
 
-    // -------------------------------
-    // Intro Text
-    // -------------------------------
+    /**
+     * The standard "dragon" ASCII
+     */
+    private String getDragonAscii() {
+        return """
+               , ,, ,                              
+           | || |    ,/  _____  \\.
+           \\_||_/    ||_/     \\_||
+             ||       \\_| . . |_/
+             ||         |  L  |
+            ,||         |`==='|
+            |>|      ___`>  -<'___
+            |>\\    /             \\
+            \\>|  /  ,    .    .  |
+             ||  \\  /| .  |  . |  |
+             ||\\  ` / | ___|___ |  |
+         (( || `--'  | _______ |  |     ))
+        """;
+    }
+
+    /**
+     * A roaring dragon for correct guesses
+     */
+    private String getDragonAsciiRoar() {
+        return """
+               , ,, ,                              
+           | || |   (R O A R)_____  \\.
+           \\_||_/    ||_/     \\_||   ~~~~~
+             ||       \\_| @ @ |_/
+             ||         |  L  |   "Fssss!"
+            ,||         |`===='|
+            |>|      ___`>  -<'___
+            |>\\    /             \\
+            \\>|  /  ,   .   .   . |
+             ||  \\  /|  . | . |  |
+             ||\\  ` / | ___|___ |  |
+         (( || `--'  | _______ |  |     ))
+        """;
+    }
+
+    /**
+     * An even more furious dragon for consecutive wrong guesses (rage).
+     */
+    private String getDragonAsciiRage() {
+        return """
+                .-===-.
+               (  RAGE  )
+                `-===-'
+                //   \\\\
+               //  x  \\\\
+      /\\  /\\  (   ____   )  /\\  /\\
+     (  \\/  )  \\ (    ) /  (  \\/  )
+      )    (    )      (    )    (
+      |(  )|    \\  --  /    |(  )|
+      ( || )      (  )      ( || )
+      /||||\\      )  (      /||||\\
+     /||||||\\    /    \\    /||||||\\
+    Bael's eyes burn with unholy fury!!!
+        """;
+    }
+
+    /**
+     * Return the hangman ASCII for how many wrong guesses so far
+     */
+    private String getHangmanState() {
+        return switch (wrongGuesses) {
+            case 1 -> """
+                 +---+
+                 |   |
+                 O   |
+                     |
+                     |
+                     |
+                =========
+                """;
+            case 2 -> """
+                 +---+
+                 |   |
+                 O   |
+                 |   |
+                     |
+                     |
+                =========
+                """;
+            case 3 -> """
+                 +---+
+                 |   |
+                 O   |
+                /|   |
+                     |
+                     |
+                =========
+                """;
+            case 4 -> """
+                 +---+
+                 |   |
+                 O   |
+                /|\\  |
+                     |
+                     |
+                =========
+                """;
+            case 5 -> """
+                 +---+
+                 |   |
+                 O   |
+                /|\\  |
+                /    |
+                     |
+                =========
+                """;
+            case 6 -> """
+                 +---+
+                 |   |
+                 O   |
+                /|\\  |
+                / \\  |
+                     |
+                =========
+                """;
+            default -> """
+                 +---+
+                 |   |
+                     |
+                     |
+                     |
+                     |
+                =========
+                """;
+        };
+    }
+
     @Override
     protected String getIntroText() {
-        return
-              "Welcome, mortal! You stand before Bael, the fearsome demon dragon of the underworld.\n"
-            + "Defeat him in a game of Hangman to banish his evil from these lands!\n"
-            + "Every wrong guess makes him laugh at you—so be careful!\n"
-            + "Current word: " + getWordProgress();
+        return "Bael the Dragon awaits your challenge...\n" +
+               "Guess the word, or suffer a scorching defeat!";
     }
 
-    // -------------------------------
-    // Called when the mini-game is successfully completed
-    // -------------------------------
+    /**
+     * If you want to do something special for finishing the mini-game, override here.
+     * But we rely on the onCompleteCallback / onFailCallback logic for awarding plushies or resetting game.
+     */
     @Override
     protected void completeGame() {
-        // Just run the callback. We do NOT override the GUI here.
-        // The GUI's callback logic will do location completion, plushie awarding, and panel switching.
-        if (onCompleteCallback != null) {
-            onCompleteCallback.run();
+        if (wonGame) {
+            // They truly guessed the word, so awarding plushie or final steps can happen.
         }
+        super.completeGame();
+    }
+
+    /**
+     * --------------------------------------------------------------
+     *  OVERRIDE startGame() to reset everything each time it's called
+     * --------------------------------------------------------------
+     */
+    @Override
+    public void startGame() {
+        // Clear all relevant fields
+        wrongGuesses = 0;
+        consecutiveWrongGuesses = 0;
+        wonGame = false;
+        if (guessedLetters != null) {
+            guessedLetters.clear();
+        }
+
+        // Reset the puzzle (or pick a new word if you want random)
+        wordToGuess = "UNDERWORLD";
+
+        // Refresh the UI if already built
+        if (asciiArtArea != null) {
+            asciiArtArea.setText(getGameSpecificAsciiArt());
+        }
+        if (wordProgressLabel != null) {
+            wordProgressLabel.setText(getWordProgress());
+        }
+        if (demonTauntLabel != null) {
+            demonTauntLabel.setText("Bael: Prepare to be crushed!");
+        }
+        if (storyLabel != null) {
+            storyLabel.setText("You feel the searing heat of Bael's breath...");
+        }
+        if (guessField != null) {
+            guessField.setText("");
+        }
+
+        // Now call the parent's startGame() so any parent logic happens
+        super.startGame();
     }
 }

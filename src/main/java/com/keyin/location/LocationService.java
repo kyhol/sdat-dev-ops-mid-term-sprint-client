@@ -2,6 +2,7 @@ package com.keyin.location;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.keyin.plushie.PlushieDTO;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -17,7 +18,6 @@ import java.util.List;
  * - Reset all locations.
  * - Mark a location as completed and award a plushie.
  *
- * This file includes every necessary import and dependency so it works exactly as your original code did.
  */
 public class LocationService {
     private final HttpClient client;
@@ -91,10 +91,9 @@ public class LocationService {
      * Also adds a plushie (based on the location name) to the collectedPlushies list.
      * @param locationId The ID of the location to complete.
      * @param allLocations The list of all locations (to find the location name).
-     * @param collectedPlushies The list to which a new plushie will be added.
      * @return true if successful, false otherwise.
      */
-    public boolean completeLocation(Long locationId, List<LocationDTO> allLocations, List<String> collectedPlushies) {
+    public boolean completeLocation(Long locationId, List<LocationDTO> allLocations) {
         try {
             // Create the JSON body for the request
             String jsonInputString = "{\"id\":" + locationId + ",\"completed\":true}";
@@ -106,12 +105,12 @@ public class LocationService {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() == 200) {
                 // Find the location name in the list and add the plushie
-                for (LocationDTO loc : allLocations) {
-                    if (loc.getId().equals(locationId)) {
-                        collectedPlushies.add(loc.getName() + " Plushie");
-                        break;
-                    }
-                }
+//                for (LocationDTO loc : allLocations) {
+//                    if (loc.getId().equals(locationId)) {
+//                        collectedPlushies.add();
+//                        break;
+//                    }
+//                }
                 return true;
             } else {
                 System.err.println("Complete location failed: HTTP " + response.statusCode());

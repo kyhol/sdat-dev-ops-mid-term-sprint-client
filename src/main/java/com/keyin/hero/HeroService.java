@@ -59,12 +59,10 @@ public class HeroService {
     }
 
     public HeroDTO getCurrentHero() throws Exception {
-        if (currentHero == null || currentHero.getId() == null) {
-            return null;
-        }
+        Long defaultHeroId = 1L;
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + "/" + currentHero.getId()))
+                .uri(URI.create(baseUrl + "/" + defaultHeroId))
                 .GET()
                 .build();
 

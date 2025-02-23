@@ -19,6 +19,7 @@ import com.keyin.location.LocationService;  // This is the client REST wrapper
 import com.keyin.minigame.AbstractMiniGame;
 import com.keyin.minigame.MiniGameFactory;
 import com.keyin.minigame.MiniGameService;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * GameInterfaceGUI with:
@@ -48,6 +49,7 @@ public class GameInterfaceGUI extends JFrame {
     // Sound fields (kept in the GUI)
     private Clip musicClip;
     private boolean isMuted = false;
+
 
     // -----------------------------------------------------------------------------------
     // CONSTRUCTOR
@@ -546,18 +548,51 @@ public class GameInterfaceGUI extends JFrame {
     // FINAL CONGRATULATIONS PANEL
     // -----------------------------------------------------------------------------------
     private void createFinalCongratulationsPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        JLabel label = new JLabel("Congratulations! You've completed the adventure!", SwingConstants.CENTER);
-        label.setFont(new Font("Arial", Font.BOLD, 20));
+        GradientPanel panel = new GradientPanel(new Color(45, 72, 89), new Color(5, 15, 25));
+        panel.setLayout(new BorderLayout());
+
+        JLabel label = new JLabel("Loading...", SwingConstants.CENTER);
+        label.setFont(new Font("Arial", Font.BOLD, 28));
+        label.setForeground(Color.WHITE);
+
+        // Add some padding
+        label.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
         panel.add(label, BorderLayout.CENTER);
 
+        // Debug print to see what we have
+        System.out.println("Current Hero: " + (currentHero != null ? currentHero.getName() : "null"));
+
+        if (currentHero != null && currentHero.getName() != null) {
+            label.setText("Congratulations " + currentHero.getName() + "! You've completed the adventure!");
+        } else {
+            try {
+                // One last attempt to get the hero
+                currentHero = heroService.getCurrentHero();
+                if (currentHero != null && currentHero.getName() != null) {
+                    label.setText("Congratulations " + currentHero.getName() + "! You've completed the adventure!");
+                } else {
+                    label.setText("Congratulations! You've completed the adventure!");
+                }
+            } catch (Exception e) {
+                label.setText("Congratulations! You've completed the adventure!");
+                e.printStackTrace();
+            }
+        }
+
         JButton quitButton = new JButton("Quit");
+        styleButton(quitButton, new Color(120, 30, 30), Color.WHITE, 20, 200, 40);
         quitButton.addActionListener(e -> System.exit(0));
-        panel.add(quitButton, BorderLayout.SOUTH);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        buttonPanel.setOpaque(false);
+        buttonPanel.add(quitButton);
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        panel.add(buttonPanel, BorderLayout.SOUTH);
 
         mainPanel.add(panel, "finalCongratulations");
     }
-
     // -----------------------------------------------------------------------------------
     // RESTART GAME
     // -----------------------------------------------------------------------------------

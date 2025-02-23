@@ -10,7 +10,7 @@ name: Java Test with Maven
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: [ "master" ]
 
 jobs:
   run_tests:

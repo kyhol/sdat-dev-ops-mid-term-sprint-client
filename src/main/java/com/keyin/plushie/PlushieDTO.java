@@ -5,14 +5,16 @@ public class PlushieDTO {
     private String name;
     private String description;
     private boolean collected;
+    private String color;
 
     public PlushieDTO() {}
 
-    public PlushieDTO(Long id, String name, String description, boolean collected) {
+    public PlushieDTO(Long id, String name, String description, boolean collected, String color) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.collected = collected;
+        this.color = color;
     }
     
     public Long getId() { return id; }
@@ -26,4 +28,7 @@ public class PlushieDTO {
 
     public boolean isCollected() { return collected; }
     public void setCollected(boolean collected) { this.collected = collected; }
+
+    public String getColor() { return color; }
+    public void setColor(String color) { this.color = color; }
 }

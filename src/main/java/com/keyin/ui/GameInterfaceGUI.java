@@ -19,6 +19,8 @@ import com.keyin.location.LocationService;  // This is the client REST wrapper
 import com.keyin.minigame.AbstractMiniGame;
 import com.keyin.minigame.MiniGameFactory;
 import com.keyin.minigame.MiniGameService;
+import com.keyin.plushie.PlushieDTO;
+import com.keyin.plushie.PlushieService;
 
 /**
  * GameInterfaceGUI with:
@@ -31,6 +33,7 @@ public class GameInterfaceGUI extends JFrame {
     private final HeroService heroService;
     private final LocationService locationService;
     private final MiniGameService miniGameService;
+    private final PlushieService plushieService;
     private HeroDTO currentHero;
 
     private CardLayout cardLayout;
@@ -43,7 +46,7 @@ public class GameInterfaceGUI extends JFrame {
     private int plushiesCollected = 0;
     private List<Long> completedLocations = new ArrayList<>();
     private List<LocationDTO> allLocations = new ArrayList<>();
-    private List<String> collectedPlushies = new ArrayList<>();
+    private List<PlushieDTO> collectedPlushies = new ArrayList<>();
 
     // Sound fields (kept in the GUI)
     private Clip musicClip;
@@ -52,9 +55,10 @@ public class GameInterfaceGUI extends JFrame {
     // -----------------------------------------------------------------------------------
     // CONSTRUCTOR
     // -----------------------------------------------------------------------------------
-    public GameInterfaceGUI(HeroService heroService, LocationService locationService) {
+    public GameInterfaceGUI(HeroService heroService, LocationService locationService, PlushieService plushieService) {
         this.heroService = heroService;
         this.locationService = locationService;
+        this.plushieService = plushieService;
         this.miniGameService = new MiniGameService();
         initializeUI();
     }
@@ -333,7 +337,8 @@ public class GameInterfaceGUI extends JFrame {
         JButton viewPlushiesButton = new JButton("View Plushies");
         styleButton(viewPlushiesButton, new Color(100, 50, 50), Color.WHITE, 16, 150, 40);
         viewPlushiesButton.addActionListener(e -> {
-            PlushieDialog dialog = new PlushieDialog(this, collectedPlushies);
+            PlushieService plushieService = new PlushieService("http://localhost:8080");
+            PlushieDialog dialog = new PlushieDialog(this, plushieService);
             dialog.setVisible(true);
         });
         buttonPanel.add(viewPlushiesButton);
@@ -449,9 +454,14 @@ public class GameInterfaceGUI extends JFrame {
             // Callbacks
             miniGame.setOnCompleteCallback(() -> {
                 System.out.println("GameInterfaceGUI: Minigame completed for location " + locationId);
-                boolean success = locationService.completeLocation(locationId, allLocations, collectedPlushies);
+                boolean success = locationService.completeLocation(locationId, allLocations);
                 if (success) {
                     completedLocations.add(locationId);
+                    try {
+                        plushieService.collectPlushie((locationId - 1));
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
                     plushiesCollected++;
                     if (plushiesCollected >= 5) {
                         cardLayout.show(mainPanel, "finalBoss");
@@ -649,30 +659,10 @@ public class GameInterfaceGUI extends JFrame {
     // PLUSHIEDIALOG
     // -----------------------------------------------------------------------------------
     public class PlushieDialog extends JDialog {
-        private final Map<String, Color> plushieColors = new HashMap<>();
-        private final Map<String, String> plushieDescriptions = new HashMap<>();
-
-        public PlushieDialog(JFrame parent, List<String> plushies) {
+        public PlushieDialog(JFrame parent, PlushieService plushieService) {
             super(parent, "Your Plushie Collection", true);
             setSize(600, 400);
             setLocationRelativeTo(parent);
-
-            plushieColors.put("UNDERWORLD PLUSHIE", new Color(128, 0, 128));
-            plushieColors.put("DRAGON'S PEAK PLUSHIE", new Color(139, 69, 19));
-            plushieColors.put("MYSTIC FOREST PLUSHIE", new Color(0, 100, 0));
-            plushieColors.put("SHADOW REALM PLUSHIE", new Color(64, 64, 64));
-            plushieColors.put("SKY SANCTUARY PLUSHIE", new Color(70, 130, 180));
-
-            plushieDescriptions.put("UNDERWORLD PLUSHIE",
-                " 👹 A plush from the dark underworld.\n 👹 Mysterious energies swirl around it.");
-            plushieDescriptions.put("DRAGON'S PEAK PLUSHIE",
-                " 🐉 A fiery plush from high peaks.\n 🐉 It might roar when squeezed!");
-            plushieDescriptions.put("MYSTIC FOREST PLUSHIE",
-                " 🌿 Soft and earthy plush with vine-like patterns.\n 🌿 It smells of pine!");
-            plushieDescriptions.put("SHADOW REALM PLUSHIE",
-                " 🖤 Creepy but cool.\n 🖤 It seems to fade if you don't look closely!");
-            plushieDescriptions.put("SKY SANCTUARY PLUSHIE",
-                " ☁️ Cloud-like plush, light as air.\n ☁️ You feel a breeze around it.");
 
             JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
             mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -684,17 +674,31 @@ public class GameInterfaceGUI extends JFrame {
             JPanel plushiePanel = new JPanel();
             plushiePanel.setLayout(new BoxLayout(plushiePanel, BoxLayout.Y_AXIS));
 
-            if (plushies.isEmpty()) {
-                JLabel emptyLabel = new JLabel("No plushies collected yet!");
-                emptyLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-                emptyLabel.setFont(new Font("Serif", Font.ITALIC, 18));
-                plushiePanel.add(emptyLabel);
-            } else {
-                for (String plushie : plushies) {
-                    JPanel plushieItemPanel = createPlushieItemPanel(plushie);
-                    plushiePanel.add(plushieItemPanel);
-                    plushiePanel.add(Box.createRigidArea(new Dimension(0, 15)));
+            try {
+                List<PlushieDTO> allPlushies = plushieService.getAllPlushies();
+                // Filter to only show collected plushies
+                List<PlushieDTO> collectedPlushies = allPlushies.stream()
+                        .filter(PlushieDTO::isCollected)
+                        .toList();
+
+                if (collectedPlushies.isEmpty()) {
+                    JLabel emptyLabel = new JLabel("No plushies collected yet!");
+                    emptyLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+                    emptyLabel.setFont(new Font("Serif", Font.ITALIC, 18));
+                    plushiePanel.add(emptyLabel);
+                } else {
+                    for (PlushieDTO plushie : collectedPlushies) {
+                        JPanel plushieItemPanel = createPlushieItemPanel(plushie);
+                        plushiePanel.add(plushieItemPanel);
+                        plushiePanel.add(Box.createRigidArea(new Dimension(0, 15)));
+                    }
                 }
+            } catch (Exception e) {
+                JLabel errorLabel = new JLabel("Error loading plushies: " + e.getMessage());
+                errorLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+                errorLabel.setFont(new Font("Serif", Font.ITALIC, 18));
+                errorLabel.setForeground(Color.RED);
+                plushiePanel.add(errorLabel);
             }
 
             JScrollPane scrollPane = new JScrollPane(plushiePanel);
@@ -711,7 +715,7 @@ public class GameInterfaceGUI extends JFrame {
             add(mainPanel);
         }
 
-        private JPanel createPlushieItemPanel(String plushieName) {
+        private JPanel createPlushieItemPanel(PlushieDTO plushie) {
             JPanel panel = new JPanel();
             panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
             panel.setBorder(BorderFactory.createCompoundBorder(
@@ -720,18 +724,20 @@ public class GameInterfaceGUI extends JFrame {
             ));
             panel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-            Color bgColor = plushieColors.getOrDefault(plushieName.toUpperCase(),
-                    new Color((int) (Math.random() * 0x1000000)));
+            Color bgColor = plushie.getColor() != null ?
+                    Color.decode(plushie.getColor()) :
+                    new Color((int) (Math.random() * 0x1000000));
             panel.setBackground(bgColor);
 
-            JLabel nameLabel = new JLabel(plushieName);
+            JLabel nameLabel = new JLabel(plushie.getName());
             nameLabel.setFont(new Font("Arial", Font.BOLD, 18));
             nameLabel.setForeground(Color.WHITE);
             nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-            String desc = plushieDescriptions.getOrDefault(plushieName.toUpperCase(),
-                    "An unknown but still magical plush!");
-            JTextArea descArea = new JTextArea(desc);
+            String description = plushie.getDescription() != null ?
+                    plushie.getDescription() :
+                    "An unknown but still magical plush!";
+            JTextArea descArea = new JTextArea(description);
             descArea.setEditable(false);
             descArea.setOpaque(false);
             descArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
@@ -757,7 +763,6 @@ public class GameInterfaceGUI extends JFrame {
             return panel;
         }
     }
-
     /**
      * Helper panel for gradient backgrounds
      */

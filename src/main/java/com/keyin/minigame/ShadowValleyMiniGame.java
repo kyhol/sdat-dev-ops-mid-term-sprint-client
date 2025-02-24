@@ -1,137 +1,406 @@
 package com.keyin.minigame;
 
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
+import java.awt.image.BufferedImage;
+import java.net.URL;
+import java.util.*;
+import java.util.List;
 
-/**
- * Simplified implementation for Shadow Valley Mini-Game (Location ID 6)
- */
 public class ShadowValleyMiniGame extends AbstractMiniGame {
-    private JButton winButton;
+    private static final int BOARD_SIZE = 8;
+    private static final int REQUIRED_VICTIMS = 3;  // Added constant for required victims
+    private JButton[][] boardButtons;
+    private boolean[][] hasShadowCat;
+    private boolean[][] initialShadowCats;
+    private boolean[][] conflictSquares;
+    private JLabel statusLabel;
+    private Color[] boardColors;
+    private Color highlightColor;
+    private Color victimColor;
+    private Color shadowCatColor;
+    private List<Point> allPieces;
+    private List<Point> playerPieces;
+    private Clip bowserClip;
 
     public ShadowValleyMiniGame(Long locationId, Long heroId, JFrame parentFrame) {
         super(locationId, heroId, parentFrame);
+        loadAudioFiles();
     }
 
     @Override
     protected void customizeUI() {
-        // Create a custom panel with shadow theme
-        JPanel customPanel = new JPanel(new BorderLayout());
-        customPanel.setBackground(Color.BLACK);
+        boardButtons = new JButton[BOARD_SIZE][BOARD_SIZE];
+        hasShadowCat = new boolean[BOARD_SIZE][BOARD_SIZE];
+        initialShadowCats = new boolean[BOARD_SIZE][BOARD_SIZE];
+        conflictSquares = new boolean[BOARD_SIZE][BOARD_SIZE];
 
-        // Create a title for the valley
-        JLabel valleyLabel = new JLabel("SHADOW VALLEY", SwingConstants.CENTER);
-        valleyLabel.setFont(new Font("Arial", Font.BOLD, 32));
-        valleyLabel.setForeground(new Color(138, 43, 226)); // Purple text
-        valleyLabel.setBorder(BorderFactory.createLineBorder(new Color(75, 0, 130), 3)); // Dark purple border
-        customPanel.add(valleyLabel, BorderLayout.NORTH);
+        boardColors = new Color[]{new Color(120, 120, 120), new Color(161, 159, 159)};
+        highlightColor = new Color(244, 29, 234, 255);
+        victimColor = new Color(138, 206, 0);
+        shadowCatColor = new Color(0, 0, 0);
 
-        // Create a visual representation of shadows
-        JPanel shadowPanel = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g;
+        allPieces = new ArrayList<>();
+        playerPieces = new ArrayList<>();
 
-                // Fill with dark background
-                g2d.setColor(new Color(25, 25, 25)); // Very dark gray
-                g2d.fillRect(0, 0, getWidth(), getHeight());
+        statusLabel = new JLabel("I was going to name this place Death Valley but it was already taken.");
 
-                // Draw some shadow silhouettes
-                g2d.setColor(new Color(10, 10, 10)); // Nearly black
+        gamePanel.removeAll();
+        gamePanel.setLayout(new BorderLayout(10, 10));
+        gamePanel.setPreferredSize(new Dimension(600, 800));
+        gamePanel.setBackground(Color.BLACK);
 
-                // Draw hills
-                g2d.fillOval(-100, getHeight()-50, 300, 100);
-                g2d.fillOval(getWidth()-200, getHeight()-70, 300, 100);
-                g2d.fillOval(getWidth()/2-100, getHeight()-60, 200, 100);
+        JLabel titleLabel = new JLabel("Shadow Valley", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Serif", Font.BOLD, 36));
+        titleLabel.setForeground(new Color(138, 206, 0));
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
 
-                // Draw eerie trees
-                for (int i = 0; i < 5; i++) {
-                    int x = i * getWidth()/5 + 20;
-                    int y = getHeight() - 80;
-                    int width = 10;
-                    int height = 100;
+        URL imageUrl = getClass().getResource("/image/Shadow.jpg");
+        JLabel imageLabel = new JLabel();
+        if (imageUrl != null) {
+            ImageIcon imageIcon = new ImageIcon(new ImageIcon(imageUrl).getImage().getScaledInstance(150, 150, Image.SCALE_SMOOTH));
+            imageLabel.setIcon(imageIcon);
+        }
 
-                    // Tree trunk
-                    g2d.setColor(new Color(25, 25, 25)); // Very dark gray
-                    g2d.fillRect(x, y-height, width, height);
+        JTextArea rulesText = new JTextArea(
+                "I am Maquito, Lord of the Shadows:\n" +
+                        "If you seek a Shadow Cat Plushie,\n" +
+                        "You have to show me you can take on my Shadow Cats.\n" +
+                        "Place your victims on the board so that no Shadow Cat can attack them.\n" +
+                        "The victims are also unable to cross each other's paths.\n" +
+                        "Shadow Cats lie in wait but can move horizontally, vertically, and diagonally,\n" +
+                        "As can the members of your team.\n" +
+                        "Click on empty squares to place or remove your victims.\n" +
+                        "Good Luck.\n" +
+                        "I didn't really mean that.\n" +
+                        "It's just a thing I heard people say.");
+        rulesText.setEditable(false);
+        rulesText.setLineWrap(true);
+        rulesText.setWrapStyleWord(true);
+        rulesText.setBackground(new Color(30, 30, 30));
+        rulesText.setForeground(new Color(200, 200, 200));
+        rulesText.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 10));
+        rulesText.setPreferredSize(new Dimension(400, 150));
 
-                    // Tree branches
-                    g2d.drawLine(x, y-height+20, x-20, y-height-10);
-                    g2d.drawLine(x+width, y-height+20, x+width+20, y-height-10);
-                    g2d.drawLine(x, y-height+40, x-15, y-height+20);
-                    g2d.drawLine(x+width, y-height+40, x+width+15, y-height+20);
-                }
+        JPanel maquitoPanel = new JPanel(new BorderLayout(10, 0));
+        maquitoPanel.setBackground(Color.BLACK);
+        maquitoPanel.add(imageLabel, BorderLayout.WEST);
+        maquitoPanel.add(rulesText, BorderLayout.CENTER);
 
-                // Draw glowing eyes
-                g2d.setColor(new Color(138, 43, 226)); // Purple
-                g2d.fillOval(100, 150, 15, 8);
-                g2d.fillOval(130, 150, 15, 8);
+        JPanel introPanel = new JPanel(new BorderLayout());
+        introPanel.setBackground(Color.BLACK);
+        introPanel.add(titleLabel, BorderLayout.NORTH);
+        introPanel.add(maquitoPanel, BorderLayout.CENTER);
 
-                g2d.fillOval(getWidth()-150, 120, 15, 8);
-                g2d.fillOval(getWidth()-120, 120, 15, 8);
+        JPanel boardPanel = new JPanel(new GridLayout(BOARD_SIZE, BOARD_SIZE, 2, 2));
+        boardPanel.setBackground(Color.BLACK);
+        boardPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        boardPanel.setPreferredSize(new Dimension(560, 560));
 
-                g2d.fillOval(getWidth()/2-50, 180, 15, 8);
-                g2d.fillOval(getWidth()/2-20, 180, 15, 8);
+        for (int row = 0; row < BOARD_SIZE; row++) {
+            for (int col = 0; col < BOARD_SIZE; col++) {
+                final int r = row;
+                final int c = col;
+                boardButtons[row][col] = new JButton();
+                boardButtons[row][col].setPreferredSize(new Dimension(70, 70));
+                boardButtons[row][col].setMargin(new Insets(0, 0, 0, 0));
+                boardButtons[row][col].addActionListener(e -> handleSquareClick(r, c));
+                boardPanel.add(boardButtons[row][col]);
+            }
+        }
 
-                // Draw mysterious mist
-                g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f));
-                g2d.setColor(new Color(128, 0, 128)); // Purple
+        statusLabel.setHorizontalAlignment(JLabel.CENTER);
+        statusLabel.setForeground(new Color(138, 206, 0));
+        statusLabel.setBackground(new Color(30, 30, 30));
+        statusLabel.setOpaque(true);
+        statusLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+        statusLabel.setPreferredSize(new Dimension(600, 40));
 
-                for (int i = 0; i < 5; i++) {
-                    int x = (int)(Math.random() * getWidth());
-                    int y = (int)(Math.random() * getHeight());
-                    int width = (int)(Math.random() * 100) + 50;
-                    int height = (int)(Math.random() * 30) + 10;
+        gamePanel.add(introPanel, BorderLayout.NORTH);
+        gamePanel.add(boardPanel, BorderLayout.CENTER);
+        gamePanel.add(statusLabel, BorderLayout.SOUTH);
 
-                    g2d.fillOval(x, y, width, height);
+        generateNewGame();
+        colorBoard();
+        playAudio(bowserClip);
+    }
+
+    private void loadAudioFiles() {
+        try {
+            URL bowserURL = getClass().getResource("/audio/ShadowValley.wav");
+            if (bowserURL != null) {
+                bowserClip = loadAudioClip(bowserURL);
+            } else {
+                System.err.println("Could not find ShadowValley.wav");
+            }
+        } catch (Exception ex) {
+            System.err.println("Error loading audio files: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+    }
+
+    private Clip loadAudioClip(URL audioURL) throws Exception {
+        AudioInputStream audioStream = AudioSystem.getAudioInputStream(audioURL);
+        Clip clip = AudioSystem.getClip();
+        clip.open(audioStream);
+        return clip;
+    }
+    private void playAudio(Clip clip) {
+        if (clip != null) {
+            if (clip.isRunning()) {
+                clip.stop();
+            }
+            clip.setFramePosition(0);
+            clip.start();
+        }
+    }
+
+    private void colorBoard() {
+        for (int row = 0; row < BOARD_SIZE; row++) {
+            for (int col = 0; col < BOARD_SIZE; col++) {
+                JButton button = boardButtons[row][col];
+                button.setBackground(boardColors[(row + col) % 2]);
+                button.setOpaque(true);
+                button.setBorderPainted(false);
+            }
+        }
+    }
+
+    private void handleSquareClick(int row, int col) {
+        if (initialShadowCats[row][col]) {
+            return;
+        }
+
+        Point clickedPoint = new Point(row, col);
+        if (hasShadowCat[row][col]) {
+            // Remove piece
+            hasShadowCat[row][col] = false;
+            playerPieces.remove(clickedPoint);
+            allPieces.remove(clickedPoint);
+        } else {
+            // Add piece
+            hasShadowCat[row][col] = true;
+            playerPieces.add(clickedPoint);
+            allPieces.add(clickedPoint);
+        }
+
+        checkConflicts();
+        updateBoard();
+
+        if (playerPieces.size() == REQUIRED_VICTIMS && !hasAnyConflicts()) {
+            dialogBox.showText("You've conquered the shadows! The Shadow Cat plushie is yours!", this::completeGame);
+        }
+    }
+
+    private boolean hasAnyConflicts() {
+        // Check each piece against every other piece
+        for (int i = 0; i < allPieces.size(); i++) {
+            Point p1 = allPieces.get(i);
+            for (int j = i + 1; j < allPieces.size(); j++) {
+                Point p2 = allPieces.get(j);
+                if (isConflict(p1, p2)) {
+                    return true;
                 }
             }
-        };
+        }
+        return false;
+    }
 
-        customPanel.add(shadowPanel, BorderLayout.CENTER);
+    private boolean isConflict(Point p1, Point p2) {
+        return p1.x == p2.x || // Same row
+                p1.y == p2.y || // Same column
+                Math.abs(p1.x - p2.x) == Math.abs(p1.y - p2.y); // Diagonal
+    }
 
-        // Replace the existing art panel
-        gamePanel.remove(artPanel);
-        gamePanel.add(customPanel, BorderLayout.CENTER);
+    private void checkConflicts() {
+        // Clear all conflicts
+        for (boolean[] row : conflictSquares) {
+            Arrays.fill(row, false);
+        }
 
-        // Create a panel for the win button
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        buttonPanel.setBackground(Color.BLACK);
+        // Check each piece against every other piece
+        for (int i = 0; i < allPieces.size(); i++) {
+            Point p1 = allPieces.get(i);
+            for (int j = i + 1; j < allPieces.size(); j++) {
+                Point p2 = allPieces.get(j);
+                if (isConflict(p1, p2)) {
+                    conflictSquares[p1.x][p1.y] = true;
+                    conflictSquares[p2.x][p2.y] = true;
+                }
+            }
+        }
+    }
 
-        // Create the win button
-        winButton = new JButton("Win Mini Game");
-        winButton.setFont(new Font("Arial", Font.BOLD, 16));
-        winButton.setBackground(new Color(138, 43, 226));
-        winButton.setForeground(Color.WHITE);
-        winButton.addActionListener(e -> {
-            dialogBox.showText("Congratulations! You've completed the Shadow Valley challenge!\nYou earned the Shadow Cat plushie!", () -> {
-                completeGame();
-            });
-        });
+    private void updateBoard() {
+        for (int row = 0; row < BOARD_SIZE; row++) {
+            for (int col = 0; col < BOARD_SIZE; col++) {
+                JButton button = boardButtons[row][col];
+                Color baseColor = boardColors[(row + col) % 2];
 
-        buttonPanel.add(winButton);
-        gamePanel.add(buttonPanel, BorderLayout.SOUTH);
+                if (hasShadowCat[row][col]) {
+                    button.setIcon(createShadowCatIcon(initialShadowCats[row][col] ? shadowCatColor : victimColor));
+                } else {
+                    button.setIcon(null);
+                }
+
+                button.setBackground(conflictSquares[row][col] ?
+                        new Color(Math.min(255, baseColor.getRed() + highlightColor.getRed()),
+                                Math.min(255, baseColor.getGreen() + highlightColor.getGreen()),
+                                Math.min(255, baseColor.getBlue() + highlightColor.getBlue())) :
+                        baseColor);
+            }
+        }
+    }
+
+    private ImageIcon createShadowCatIcon(Color color) {
+        int iconSize = 50;
+        BufferedImage image = new BufferedImage(iconSize, iconSize, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = image.createGraphics();
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        g2d.setColor(color);
+        int[] xPoints = {iconSize/2, iconSize/5, iconSize/10, iconSize/5, iconSize*3/10,
+                iconSize/2, iconSize*7/10, iconSize*4/5, iconSize*9/10, iconSize*4/5};
+        int[] yPoints = {iconSize/8, iconSize/3, iconSize*2/3, iconSize*3/4, iconSize*5/6,
+                iconSize*7/8, iconSize*5/6, iconSize*3/4, iconSize*2/3, iconSize/3};
+        g2d.fillPolygon(xPoints, yPoints, xPoints.length);
+
+        g2d.setColor(color.brighter());
+        g2d.setStroke(new BasicStroke(2));
+        g2d.drawPolygon(xPoints, yPoints, xPoints.length);
+
+        g2d.dispose();
+        return new ImageIcon(image);
+    }
+
+    private boolean isGameWon() {
+        int placedVictims = 0;
+        boolean hasConflicts = false;
+
+        // Count placed victims and check for conflicts
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                if (hasShadowCat[i][j] && !initialShadowCats[i][j]) {
+                    placedVictims++;
+                    if (conflictSquares[i][j]) {
+                        hasConflicts = true;
+                    }
+                }
+            }
+        }
+
+        // Win condition: exactly 3 victims placed with no conflicts
+        return placedVictims == REQUIRED_VICTIMS && !hasConflicts;
+    }
+
+    private void generateNewGame() {
+        // Clear all arrays
+        for (boolean[] row : hasShadowCat) {
+            Arrays.fill(row, false);
+        }
+        for (boolean[] row : initialShadowCats) {
+            Arrays.fill(row, false);
+        }
+        for (boolean[] row : conflictSquares) {
+            Arrays.fill(row, false);
+        }
+
+        allPieces.clear();
+        playerPieces.clear();
+
+        boolean[][] solution = generateRandomSolution();
+        ArrayList<Point> possiblePositions = new ArrayList<>();
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                if (solution[i][j]) {
+                    possiblePositions.add(new Point(i, j));
+                }
+            }
+        }
+
+        Collections.shuffle(possiblePositions);
+        for (int i = 0; i < 5; i++) {
+            Point p = possiblePositions.get(i);
+            initialShadowCats[p.x][p.y] = true;
+            hasShadowCat[p.x][p.y] = true;
+            allPieces.add(p);
+        }
+
+        updateBoard();
+    }
+
+    private boolean[][] generateRandomSolution() {
+        boolean[][] solution = new boolean[BOARD_SIZE][BOARD_SIZE];
+        int[] shadowCats = new int[BOARD_SIZE];
+        Arrays.fill(shadowCats, -1);
+
+        Random random = new Random();
+        solveNShadowCats(shadowCats, 0, random);
+
+        for (int row = 0; row < BOARD_SIZE; row++) {
+            solution[row][shadowCats[row]] = true;
+        }
+
+        return solution;
+    }
+
+    private boolean solveNShadowCats(int[] shadowCats, int row, Random random) {
+        if (row == BOARD_SIZE) {
+            return true;
+        }
+
+        ArrayList<Integer> validPositions = new ArrayList<>();
+        for (int col = 0; col < BOARD_SIZE; col++) {
+            if (isValid(shadowCats, row, col)) {
+                validPositions.add(col);
+            }
+        }
+
+        Collections.shuffle(validPositions, random);
+
+        for (Integer col : validPositions) {
+            shadowCats[row] = col;
+            if (solveNShadowCats(shadowCats, row + 1, random)) {
+                return true;
+            }
+        }
+
+        shadowCats[row] = -1;
+        return false;
+    }
+
+    private boolean isValid(int[] shadowCats, int row, int col) {
+        for (int i = 0; i < row; i++) {
+            if (shadowCats[i] == col ||
+                    shadowCats[i] - i == col - row ||
+                    shadowCats[i] + i == col + row) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
     protected void handleKeyPress(KeyEvent e) {
-        // If space key is pressed and not currently typing, simulate a button press
-        if (!dialogBox.isTyping() && e.getKeyChar() == ' ') {
-            winButton.doClick();
-        }
     }
 
     @Override
     protected String getGameSpecificAsciiArt() {
-        return "SHADOW VALLEY";
+        return """
+               /\\___/\\   Shadow Valley   /\\___/\\  \s
+              (  o o  )  Maquito's Lair  (  o o  ) \s
+              (  T_T  )     Beware...    (  T_T  ) \s
+               \\~(*)~/   Dark Shadows...  \\~(*)~/   \
+            """;
     }
 
     @Override
     protected String getIntroText() {
-        return "Welcome to Shadow Valley...\n" +
-                "Darkness surrounds you, and eerie shapes move at the edge of your vision.\n" +
-                "Click the 'Win Mini Game' button or press the SPACE key to complete it.";
+        return "Welcome to Shadow Valley, domain of Maquito, Lord of Shadows.\n" +
+                "Place your pieces carefully, for the shadows are watching...";
     }
 }

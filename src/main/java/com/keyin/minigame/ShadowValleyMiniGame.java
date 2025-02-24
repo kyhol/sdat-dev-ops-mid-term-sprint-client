@@ -32,7 +32,6 @@ import javax.swing.SwingConstants;
 /**
  * Simplified implementation for Shadow Valley Mini-Game (Location ID 6)
  */
-=======
 public class ShadowValleyMiniGame extends AbstractMiniGame {
     private static final int BOARD_SIZE = 8;
     private static final int REQUIRED_VICTIMS = 3;  // Added constant for required victims

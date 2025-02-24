@@ -2,14 +2,17 @@ package com.keyin.minigame;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.GradientPaint;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.GridLayout;
 import java.awt.event.KeyEvent;
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -20,44 +23,26 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.Timer;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 
-/**
- * DragonsPeakMiniGame - Hangman-style mini-game for the word "UNDERWORLD".
- * 
- * Features:
- *  - Must guess the entire word (no "Win" button).
- *  - Straight game over if you run out of guesses -> triggers onFailCallback,
- *    which can call `restartGame()` in GameInterfaceGUI (or do whatever).
- *  - "Roar" animation on correct guesses.
- *  - "Rage" animation if you guess wrong twice in a row.
- *  - Plushie only awarded if you fully guess the word (onCompleteCallback).
- * 
- *  Now also overrides `startGame()` to reset everything each time
- *  it's called, guaranteeing a fresh puzzle on re-entry.
- */
 public class DragonsPeakMiniGame extends AbstractMiniGame {
 
     private String wordToGuess;
     private Set<Character> guessedLetters;
     private int wrongGuesses = 0;
     private final int maxWrongGuesses = 6;
-
-    // Track if the game was truly won
     private boolean wonGame = false;
-
-    // This will let us do a "rage" animation if the player misses multiple times in a row
     private int consecutiveWrongGuesses = 0;
-
     private JLabel wordProgressLabel;
     private JLabel demonTauntLabel;
     private JTextArea asciiArtArea;
     private JTextField guessField;
     private JLabel storyLabel;
-
     private Timer animationTimer;
     private JButton guessButton;
 
-    // Taunts for correct/wrong guesses
     private final String[] wrongTaunts = {
         "Bael: Ha! You missed that, mortal!",
         "Bael: Is that the best you can do?",
@@ -73,7 +58,6 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         "Bael: You may have some potential..."
     };
 
-    // Extra "rage" taunts if the dragon gets furious
     private final String[] rageTaunts = {
         "Bael: You dare continue this insolence?!",
         "Bael: My fury will consume you!",
@@ -81,72 +65,78 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         "Bael: I'll scorch the very ground you stand on!"
     };
 
-    /**
-     * Constructor
-     */
     public DragonsPeakMiniGame(Long locationId, Long heroId, JFrame parentFrame) {
         super(locationId, heroId, parentFrame);
     }
 
     @Override
     protected void customizeUI() {
-        // Do initial setups
         wordToGuess = "UNDERWORLD";
         guessedLetters = new HashSet<>();
 
-        // Main container
-        JPanel gamePanel = new JPanel(new BorderLayout(10, 10));
-        gamePanel.setBackground(Color.BLACK);
+        GradientPanel gamePanel = new GradientPanel(
+                new Color(25, 0, 0),
+                new Color(70, 10, 10)
+        );
+        gamePanel.setLayout(new BorderLayout(10, 10));
 
-        // Title
         JLabel titleLabel = new JLabel("DRAGON'S PEAK", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 32));
-        titleLabel.setForeground(Color.RED);
-        titleLabel.setBorder(BorderFactory.createLineBorder(Color.BLUE, 3));
+        titleLabel.setFont(new Font("Algerian", Font.BOLD, 38));
+        titleLabel.setForeground(Color.ORANGE);
+        titleLabel.setBorder(new CompoundBorder(
+                new LineBorder(new Color(200, 50, 50), 3),
+                new EmptyBorder(10, 10, 10, 10)
+        ));
         gamePanel.add(titleLabel, BorderLayout.NORTH);
 
-        // ASCII text area on the left
         asciiArtArea = new JTextArea(getGameSpecificAsciiArt());
         asciiArtArea.setEditable(false);
         asciiArtArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
-        asciiArtArea.setBackground(Color.BLACK);
-        asciiArtArea.setForeground(Color.WHITE);
-        gamePanel.add(new JScrollPane(asciiArtArea), BorderLayout.WEST);
+        asciiArtArea.setBackground(new Color(10, 10, 10));
+        asciiArtArea.setForeground(new Color(220, 220, 220));
+        asciiArtArea.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        // Center panel with word progress, demon taunt, storyline
+        JScrollPane asciiScroll = new JScrollPane(asciiArtArea,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        asciiScroll.setPreferredSize(new Dimension(320, 300));
+        gamePanel.add(asciiScroll, BorderLayout.WEST);
+
         JPanel centerPanel = new JPanel(new GridLayout(3, 1));
-        centerPanel.setBackground(Color.BLACK);
+        centerPanel.setOpaque(false);
 
         wordProgressLabel = new JLabel(getWordProgress(), SwingConstants.CENTER);
-        wordProgressLabel.setFont(new Font("Serif", Font.BOLD, 28));
-        wordProgressLabel.setForeground(Color.WHITE);
+        wordProgressLabel.setFont(new Font("Serif", Font.BOLD, 32));
+        wordProgressLabel.setForeground(new Color(230, 230, 230));
         centerPanel.add(wordProgressLabel);
 
         demonTauntLabel = new JLabel("Bael: Prepare to be crushed!", SwingConstants.CENTER);
         demonTauntLabel.setFont(new Font("Serif", Font.ITALIC, 18));
-        demonTauntLabel.setForeground(Color.RED);
+        demonTauntLabel.setForeground(new Color(255, 80, 80));
         centerPanel.add(demonTauntLabel);
 
         storyLabel = new JLabel("You feel the searing heat of Bael's breath...", SwingConstants.CENTER);
         storyLabel.setFont(new Font("Serif", Font.PLAIN, 16));
-        storyLabel.setForeground(Color.ORANGE);
+        storyLabel.setForeground(new Color(250, 200, 100));
         centerPanel.add(storyLabel);
 
         gamePanel.add(centerPanel, BorderLayout.CENTER);
 
-        // Input panel (guess field + button)
         JPanel inputPanel = new JPanel(new FlowLayout());
-        inputPanel.setBackground(Color.BLACK);
+        inputPanel.setOpaque(false);
 
         JLabel promptLabel = new JLabel("Enter a letter: ");
-        promptLabel.setFont(new Font("Serif", Font.PLAIN, 18));
+        promptLabel.setFont(new Font("Serif", Font.BOLD, 18));
         promptLabel.setForeground(Color.WHITE);
 
         guessField = new JTextField(5);
         guessField.setFont(new Font("Serif", Font.PLAIN, 18));
+        guessField.setForeground(new Color(20, 20, 20));
 
         guessButton = new JButton("Guess");
-        guessButton.setFont(new Font("Serif", Font.PLAIN, 18));
+        guessButton.setFont(new Font("Serif", Font.BOLD, 18));
+        guessButton.setBackground(new Color(120, 30, 30));
+        guessButton.setForeground(new Color(245, 245, 245));
 
         guessButton.addActionListener(e -> processGuess());
         guessField.addActionListener(e -> processGuess());
@@ -157,19 +147,15 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
 
         gamePanel.add(inputPanel, BorderLayout.SOUTH);
 
-        // We remove the default art panel from AbstractMiniGame and add our custom layout
         this.gamePanel.remove(artPanel);
         this.gamePanel.add(gamePanel, BorderLayout.CENTER);
     }
 
     @Override
     protected void handleKeyPress(KeyEvent e) {
-        // If you'd like a key-based skip or other action, do it here.
+        // No extra key behavior
     }
 
-    /**
-     * Called whenever the user clicks "Guess" or presses Enter in guessField.
-     */
     private void processGuess() {
         String input = guessField.getText().trim().toUpperCase();
         guessField.setText("");
@@ -181,13 +167,9 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
                 JOptionPane.WARNING_MESSAGE);
             return;
         }
-
         processGuess(input.charAt(0));
     }
 
-    /**
-     * Main logic for guess correctness, ASCII updates, game over checks, etc.
-     */
     private void processGuess(char guessedChar) {
         if (guessedLetters.contains(guessedChar)) {
             JOptionPane.showMessageDialog(parentFrame,
@@ -196,19 +178,15 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
                 JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-
         guessedLetters.add(guessedChar);
 
         if (wordToGuess.indexOf(guessedChar) >= 0) {
-            // Correct guess
             consecutiveWrongGuesses = 0;
             updateWordProgress();
             demonTauntLabel.setText(getRandomTaunt(correctTaunts));
             storyLabel.setText("Bael snarls, but you feel a surge of confidence...");
             showRoarAnimation();
-
         } else {
-            // Wrong guess
             wrongGuesses++;
             consecutiveWrongGuesses++;
             asciiArtArea.setText(getGameSpecificAsciiArt());
@@ -244,15 +222,11 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         }
     }
 
-    /**
-     * Show a short "roaring" ASCII, then revert after 1 second.
-     */
     private void showRoarAnimation() {
         if (animationTimer != null && animationTimer.isRunning()) {
             animationTimer.stop();
         }
         asciiArtArea.setText(getDragonAsciiRoar() + "\n\n" + getHangmanState());
-
         animationTimer = new Timer(1000, e -> {
             asciiArtArea.setText(getGameSpecificAsciiArt());
             animationTimer.stop();
@@ -260,15 +234,11 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         animationTimer.start();
     }
 
-    /**
-     * Show a short "rage" ASCII (angrier than roar), then revert after 1 second.
-     */
     private void showRageAnimation() {
         if (animationTimer != null && animationTimer.isRunning()) {
             animationTimer.stop();
         }
         asciiArtArea.setText(getDragonAsciiRage() + "\n\n" + getHangmanState());
-
         animationTimer = new Timer(1000, e -> {
             asciiArtArea.setText(getGameSpecificAsciiArt());
             animationTimer.stop();
@@ -276,16 +246,10 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         animationTimer.start();
     }
 
-    /**
-     * Update the word progress label with underscores or letters.
-     */
     private void updateWordProgress() {
         wordProgressLabel.setText(getWordProgress());
     }
 
-    /**
-     * Return a spaced-out version of the puzzle's progress.
-     */
     private String getWordProgress() {
         StringBuilder progress = new StringBuilder();
         for (char c : wordToGuess.toCharArray()) {
@@ -312,9 +276,6 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         return getDragonAscii() + "\n\n" + getHangmanState();
     }
 
-    /**
-     * The standard "dragon" ASCII
-     */
     private String getDragonAscii() {
         return """
                , ,, ,                              
@@ -332,9 +293,6 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         """;
     }
 
-    /**
-     * A roaring dragon for correct guesses
-     */
     private String getDragonAsciiRoar() {
         return """
                , ,, ,                              
@@ -352,9 +310,6 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         """;
     }
 
-    /**
-     * An even more furious dragon for consecutive wrong guesses (rage).
-     */
     private String getDragonAsciiRage() {
         return """
                 .-===-.
@@ -373,9 +328,6 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         """;
     }
 
-    /**
-     * Return the hangman ASCII for how many wrong guesses so far
-     */
     private String getHangmanState() {
         return switch (wrongGuesses) {
             case 1 -> """
@@ -450,37 +402,24 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
                "Guess the word, or suffer a scorching defeat!";
     }
 
-    /**
-     * If you want to do something special for finishing the mini-game, override here.
-     * But we rely on the onCompleteCallback / onFailCallback logic for awarding plushies or resetting game.
-     */
     @Override
     protected void completeGame() {
         if (wonGame) {
-            // They truly guessed the word, so awarding plushie or final steps can happen.
+            // Additional final logic if needed
         }
         super.completeGame();
     }
 
-    /**
-     * --------------------------------------------------------------
-     *  OVERRIDE startGame() to reset everything each time it's called
-     * --------------------------------------------------------------
-     */
     @Override
     public void startGame() {
-        // Clear all relevant fields
         wrongGuesses = 0;
         consecutiveWrongGuesses = 0;
         wonGame = false;
         if (guessedLetters != null) {
             guessedLetters.clear();
         }
-
-        // Reset the puzzle (or pick a new word if you want random)
         wordToGuess = "UNDERWORLD";
 
-        // Refresh the UI if already built
         if (asciiArtArea != null) {
             asciiArtArea.setText(getGameSpecificAsciiArt());
         }
@@ -496,8 +435,29 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         if (guessField != null) {
             guessField.setText("");
         }
-
-        // Now call the parent's startGame() so any parent logic happens
         super.startGame();
+    }
+
+    // Simple gradient panel to enhance the background
+    private static class GradientPanel extends JPanel {
+        private final Color color1;
+        private final Color color2;
+
+        public GradientPanel(Color color1, Color color2) {
+            this.color1 = color1;
+            this.color2 = color2;
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g;
+            int w = getWidth();
+            int h = getHeight();
+            GradientPaint gp = new GradientPaint(0, 0, color1, w, h, color2);
+            g2.setPaint(gp);
+            g2.fillRect(0, 0, w, h);
+        }
     }
 }

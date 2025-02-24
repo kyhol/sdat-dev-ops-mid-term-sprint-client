@@ -1,8 +1,20 @@
 package com.keyin.minigame;
 
-import javax.swing.*;
-import java.awt.*;
+import java.awt.AlphaComposite;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.event.KeyEvent;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
 
 /**
  * Simplified implementation for Shadow Valley Mini-Game (Location ID 6)

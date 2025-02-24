@@ -77,4 +77,19 @@ public class PlushieService {
             throw new RuntimeException("Failed to collect plushie: HTTP " + response.statusCode());
         }
     }
+
+    /**
+     * Resets all plushies on the server.
+     * @throws Exception if the HTTP call fails.
+     */
+    public void resetAllPlushies() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/reset"))
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new RuntimeException("Failed to reset plushies: HTTP " + response.statusCode());
+        }
+    }
 }

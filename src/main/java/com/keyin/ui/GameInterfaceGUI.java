@@ -616,6 +616,7 @@ public class GameInterfaceGUI extends JFrame {
         collectedPlushies.clear();
 
         try {
+            plushieService.resetAllPlushies();
             locationService.resetAllLocations();
             allLocations = locationService.getAllLocations();
             populateLocationButtons();

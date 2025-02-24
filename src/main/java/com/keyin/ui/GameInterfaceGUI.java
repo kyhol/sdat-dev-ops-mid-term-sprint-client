@@ -95,17 +95,17 @@ public class GameInterfaceGUI extends JFrame {
     // WELCOME PANEL
     // -----------------------------------------------------------------------------------
     private void createWelcomePanel() {
-        GradientPanel panel = new GradientPanel(new Color(45, 72, 89), new Color(5, 15, 25));
+        GradientPanel panel = new GradientPanel(new Color(240, 240, 240), new Color(240, 240, 240));
         panel.setLayout(new BorderLayout(20, 20));
 
         JLabel titleLabel = new JLabel("RPG Adventure", SwingConstants.CENTER);
         titleLabel.setFont(new Font("Serif", Font.BOLD | Font.ITALIC, 48));
-        titleLabel.setForeground(Color.WHITE);
+        titleLabel.setForeground(new Color(0, 0, 0));
         titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
         panel.add(titleLabel, BorderLayout.NORTH);
 
         JLabel introLabel = new JLabel("<html><center>"
-            + "<p style='font-size:20px;color:lightgray;'>"
+            + "<p style='font-size:20px;color:#000000;'>"
             + "Embark on a magical quest to collect the legendary plushies!<br>"
             + "Only the bravest heroes can prevail..."
             + "</p></center></html>", SwingConstants.CENTER);
@@ -115,14 +115,14 @@ public class GameInterfaceGUI extends JFrame {
         buttonPanel.setOpaque(false);
 
         JButton startButton = new JButton("Begin Your Journey");
-        styleButton(startButton, new Color(100, 30, 30), Color.WHITE, 20, 240, 50);
+        styleButton(startButton, new Color(139, 0, 0), new Color(240, 240, 240), 20, 240, 50);
         startButton.addActionListener(e -> {
             stopMusic();
             cardLayout.show(mainPanel, "heroCreation");
         });
 
         JButton muteButton = new JButton("🔊");
-        styleButton(muteButton, new Color(30, 30, 100), Color.WHITE, 20, 80, 50);
+        styleButton(muteButton, new Color(0, 0, 0), new Color(240, 240, 240), 20, 80, 50);
         muteButton.addActionListener(e -> {
             isMuted = !isMuted;
             if (isMuted) {
@@ -155,7 +155,7 @@ public class GameInterfaceGUI extends JFrame {
     // HERO CREATION PANEL
     // -----------------------------------------------------------------------------------
     private void createHeroCreationPanel() {
-        GradientPanel panel = new GradientPanel(new Color(70, 30, 70), new Color(20, 0, 20));
+        GradientPanel panel = new GradientPanel(new Color(240, 240, 240), new Color(240, 240, 240));
         panel.setLayout(new GridBagLayout());
 
         JPanel formPanel = new JPanel();
@@ -164,7 +164,7 @@ public class GameInterfaceGUI extends JFrame {
 
         JLabel createHeroTitle = new JLabel("Forge Your Hero");
         createHeroTitle.setFont(new Font("Serif", Font.BOLD | Font.ITALIC, 36));
-        createHeroTitle.setForeground(Color.WHITE);
+        createHeroTitle.setForeground(new Color(0, 0, 0));
         createHeroTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
         formPanel.add(createHeroTitle);
         formPanel.add(Box.createRigidArea(new Dimension(0, 20)));
@@ -173,7 +173,7 @@ public class GameInterfaceGUI extends JFrame {
         JPanel inputPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         inputPanel.setOpaque(false);
         JLabel nameLabel = new JLabel("Hero's Name: ");
-        nameLabel.setForeground(Color.WHITE);
+        nameLabel.setForeground(new Color(0, 0, 0));
         nameLabel.setFont(new Font("Arial", Font.PLAIN, 20));
 
         JTextField nameField = new JTextField(20);
@@ -186,7 +186,7 @@ public class GameInterfaceGUI extends JFrame {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         buttonPanel.setOpaque(false);
         JButton createButton = new JButton("Begin Adventure!");
-        styleButton(createButton, new Color(120, 30, 30), Color.WHITE, 22, 220, 40);
+        styleButton(createButton, new Color(139, 0, 0), new Color(240, 240, 240), 22, 220, 40);
 
         createButton.addActionListener(e -> {
             String name = nameField.getText().trim();
@@ -227,7 +227,7 @@ public class GameInterfaceGUI extends JFrame {
     // START PANEL
     // -----------------------------------------------------------------------------------
     private void createStartPanel() {
-        GradientPanel panel = new GradientPanel(new Color(15, 15, 40), new Color(50, 25, 85));
+        GradientPanel panel = new GradientPanel(new Color(240, 240, 240), new Color(240, 240, 240));
         panel.setLayout(new BorderLayout());
 
         // Some big art in center
@@ -318,12 +318,12 @@ public class GameInterfaceGUI extends JFrame {
     // LOCATION SELECTION PANEL
     // -----------------------------------------------------------------------------------
     private void createLocationSelectionPanel() {
-        GradientPanel locationSelectionPanel = new GradientPanel(new Color(25, 55, 55), new Color(0, 20, 20));
+        GradientPanel locationSelectionPanel = new GradientPanel(new Color(240, 240, 240), new Color(240, 240, 240));
         locationSelectionPanel.setLayout(new BorderLayout(15,15));
 
         JLabel prompt = new JLabel("Select a Realm to Explore:", SwingConstants.CENTER);
         prompt.setFont(new Font("Serif", Font.BOLD, 26));
-        prompt.setForeground(Color.WHITE);
+        prompt.setForeground(new Color(0, 0, 0));
         prompt.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
         locationSelectionPanel.add(prompt, BorderLayout.NORTH);
 
@@ -338,7 +338,7 @@ public class GameInterfaceGUI extends JFrame {
         buttonPanel.setOpaque(false);
 
         JButton viewPlushiesButton = new JButton("View Plushies");
-        styleButton(viewPlushiesButton, new Color(100, 50, 50), Color.WHITE, 16, 150, 40);
+        styleButton(viewPlushiesButton, new Color(0, 0, 0), new Color(240, 240, 240), 16, 150, 40);
         viewPlushiesButton.addActionListener(e -> {
             PlushieService plushieService = new PlushieService("http://localhost:8080");
             PlushieDialog dialog = new PlushieDialog(this, plushieService);
@@ -347,7 +347,7 @@ public class GameInterfaceGUI extends JFrame {
         buttonPanel.add(viewPlushiesButton);
 
         JButton resetButton = new JButton("Reset Game");
-        styleButton(resetButton, new Color(50, 50, 100), Color.WHITE, 16, 150, 40);
+        styleButton(resetButton, new Color(0, 0, 0), new Color(240, 240, 240), 16, 150, 40);
         resetButton.addActionListener(e -> {
             int choice = JOptionPane.showConfirmDialog(this,
                     "Are you sure you want to reset the game? All progress will be lost.",
@@ -387,20 +387,20 @@ public class GameInterfaceGUI extends JFrame {
         for (LocationDTO location : filteredLocations) {
             JButton locButton = new JButton(location.getName());
             locButton.setFont(new Font("Serif", Font.BOLD, 20));
-            locButton.setForeground(Color.WHITE);
-            locButton.setBackground(new Color(70,70,100));
+            locButton.setForeground(new Color(240, 240, 240));
+            locButton.setBackground(new Color(0, 0, 0));
             locButton.setFocusPainted(false);
-            locButton.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 2));
+            locButton.setBorder(BorderFactory.createLineBorder(new Color(139, 0, 0), 2));
 
             // Hover effect
             locButton.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseEntered(MouseEvent e) {
-                    locButton.setBackground(new Color(90,90,150));
+                    locButton.setBackground(new Color(139, 0, 0));
                 }
                 @Override
                 public void mouseExited(MouseEvent e) {
-                    locButton.setBackground(new Color(70,70,100));
+                    locButton.setBackground(new Color(0, 0, 0));
                 }
             });
 
@@ -505,6 +505,8 @@ public class GameInterfaceGUI extends JFrame {
         JPanel panel = new JPanel(new BorderLayout());
         outputArea = new JTextArea();
         outputArea.setEditable(false);
+        outputArea.setBackground(new Color(240, 240, 240));
+        outputArea.setForeground(new Color(0, 0, 0));
         panel.add(new JScrollPane(outputArea), BorderLayout.CENTER);
 
         JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 10, 10));
@@ -559,12 +561,12 @@ public class GameInterfaceGUI extends JFrame {
     // FINAL CONGRATULATIONS PANEL
     // -----------------------------------------------------------------------------------
     private void createFinalCongratulationsPanel() {
-        GradientPanel panel = new GradientPanel(new Color(45, 72, 89), new Color(5, 15, 25));
+        GradientPanel panel = new GradientPanel(new Color(240, 240, 240), new Color(240, 240, 240));
         panel.setLayout(new BorderLayout());
 
         JLabel label = new JLabel("Loading...", SwingConstants.CENTER);
         label.setFont(new Font("Arial", Font.BOLD, 28));
-        label.setForeground(Color.WHITE);
+        label.setForeground(new Color(0, 0, 0));
 
         // Add some padding
         label.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
@@ -592,7 +594,7 @@ public class GameInterfaceGUI extends JFrame {
         }
 
         JButton quitButton = new JButton("Quit");
-        styleButton(quitButton, new Color(120, 30, 30), Color.WHITE, 20, 200, 40);
+        styleButton(quitButton, new Color(139, 0, 0), new Color(240, 240, 240), 20, 200, 40);
         quitButton.addActionListener(e -> System.exit(0));
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -604,6 +606,7 @@ public class GameInterfaceGUI extends JFrame {
 
         mainPanel.add(panel, "finalCongratulations");
     }
+
     // -----------------------------------------------------------------------------------
     // RESTART GAME
     // -----------------------------------------------------------------------------------
@@ -642,6 +645,7 @@ public class GameInterfaceGUI extends JFrame {
         button.setForeground(fg);
         button.setBackground(bg);
         button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createLineBorder(new Color(139, 0, 0), 3, true));
         button.setPreferredSize(new Dimension(width, height));
     }
 
@@ -799,6 +803,7 @@ public class GameInterfaceGUI extends JFrame {
             return panel;
         }
     }
+
     /**
      * Helper panel for gradient backgrounds
      */

@@ -1,16 +1,38 @@
 package com.keyin.minigame;
 
+
+import java.awt.AlphaComposite;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import javax.swing.*;
 import java.awt.*;
+
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.net.URL;
 import java.util.*;
 import java.util.List;
 
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
+
+/**
+ * Simplified implementation for Shadow Valley Mini-Game (Location ID 6)
+ */
+=======
 public class ShadowValleyMiniGame extends AbstractMiniGame {
     private static final int BOARD_SIZE = 8;
     private static final int REQUIRED_VICTIMS = 3;  // Added constant for required victims

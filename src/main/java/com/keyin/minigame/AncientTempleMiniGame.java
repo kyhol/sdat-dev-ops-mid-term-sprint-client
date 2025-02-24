@@ -128,7 +128,12 @@ public class AncientTempleMiniGame extends AbstractMiniGame {
 
                 Timer message3 = new Timer(2500, e3 -> {
                     dialogBox.showText("Something's coming", () -> {
-                        playScaryGif();
+                        Timer scaryGifTimer = new Timer(2500, e4 -> {
+                            playScaryGif();
+                            ((Timer)e4.getSource()).stop();
+                        });
+                        scaryGifTimer.setRepeats(false);
+                        scaryGifTimer.start();
                     });
                     ((Timer)e3.getSource()).stop();
                 });

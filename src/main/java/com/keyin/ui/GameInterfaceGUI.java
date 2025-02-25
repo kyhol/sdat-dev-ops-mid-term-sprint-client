@@ -95,7 +95,8 @@ public class GameInterfaceGUI extends JFrame {
     // WELCOME PANEL
     // -----------------------------------------------------------------------------------
     private void createWelcomePanel() {
-        GradientPanel panel = new GradientPanel(new Color(240, 240, 240), new Color(240, 240, 240));
+        // Changed to distinct colors for macOS
+        GradientPanel panel = new GradientPanel(new Color(245, 245, 245), new Color(220, 220, 220));
         panel.setLayout(new BorderLayout(20, 20));
 
         JLabel titleLabel = new JLabel("RPG Adventure", SwingConstants.CENTER);
@@ -155,7 +156,8 @@ public class GameInterfaceGUI extends JFrame {
     // HERO CREATION PANEL
     // -----------------------------------------------------------------------------------
     private void createHeroCreationPanel() {
-        GradientPanel panel = new GradientPanel(new Color(240, 240, 240), new Color(240, 240, 240));
+        // Changed to distinct colors for macOS
+        GradientPanel panel = new GradientPanel(new Color(245, 245, 245), new Color(220, 220, 220));
         panel.setLayout(new GridBagLayout());
 
         JPanel formPanel = new JPanel();
@@ -227,7 +229,8 @@ public class GameInterfaceGUI extends JFrame {
     // START PANEL
     // -----------------------------------------------------------------------------------
     private void createStartPanel() {
-        GradientPanel panel = new GradientPanel(new Color(240, 240, 240), new Color(240, 240, 240));
+        // Changed to distinct colors for macOS
+        GradientPanel panel = new GradientPanel(new Color(245, 245, 245), new Color(220, 220, 220));
         panel.setLayout(new BorderLayout());
 
         // Some big art in center
@@ -318,7 +321,8 @@ public class GameInterfaceGUI extends JFrame {
     // LOCATION SELECTION PANEL
     // -----------------------------------------------------------------------------------
     private void createLocationSelectionPanel() {
-        GradientPanel locationSelectionPanel = new GradientPanel(new Color(240, 240, 240), new Color(240, 240, 240));
+        // Changed to distinct colors for macOS
+        GradientPanel locationSelectionPanel = new GradientPanel(new Color(245, 245, 245), new Color(220, 220, 220));
         locationSelectionPanel.setLayout(new BorderLayout(15,15));
 
         JLabel prompt = new JLabel("Select a Realm to Explore:", SwingConstants.CENTER);
@@ -561,7 +565,8 @@ public class GameInterfaceGUI extends JFrame {
     // FINAL CONGRATULATIONS PANEL
     // -----------------------------------------------------------------------------------
     private void createFinalCongratulationsPanel() {
-        GradientPanel panel = new GradientPanel(new Color(240, 240, 240), new Color(240, 240, 240));
+        // Changed to distinct colors for macOS
+        GradientPanel panel = new GradientPanel(new Color(245, 245, 245), new Color(220, 220, 220));
         panel.setLayout(new BorderLayout());
 
         JLabel label = new JLabel("Loading...", SwingConstants.CENTER);
@@ -815,6 +820,7 @@ public class GameInterfaceGUI extends JFrame {
         public GradientPanel(Color color1, Color color2) {
             this.color1 = color1;
             this.color2 = color2;
+            setOpaque(true); // ensure the panel actually draws the gradient
         }
 
         @Override

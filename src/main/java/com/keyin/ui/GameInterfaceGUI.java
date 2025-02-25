@@ -201,7 +201,17 @@ public class GameInterfaceGUI extends JFrame {
                         JOptionPane.ERROR_MESSAGE);
             } else {
                 try {
-                    currentHero = heroService.updateHero(name);
+                    // Try creating a new hero instead of updating
+                    try {
+                        currentHero = heroService.createHero(name);
+                        System.out.println("Created new hero: " + currentHero.getName());
+                    } catch (Exception ex) {
+                        // If creation fails, fall back to update
+                        System.out.println("Creation failed, falling back to update: " + ex.getMessage());
+                        currentHero = heroService.updateHero(name);
+                        System.out.println("Updated existing hero: " + currentHero.getName());
+                    }
+
                     JOptionPane.showMessageDialog(this,
                             "Hero name set to " + name + "!",
                             "Success",
@@ -209,7 +219,7 @@ public class GameInterfaceGUI extends JFrame {
                     cardLayout.show(mainPanel, "startPanel");
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(this,
-                            "Error updating hero: " + ex.getMessage(),
+                            "Error setting hero name: " + ex.getMessage(),
                             "Error",
                             JOptionPane.ERROR_MESSAGE);
                 }
@@ -226,7 +236,6 @@ public class GameInterfaceGUI extends JFrame {
         panel.add(formPanel);
         mainPanel.add(panel, "heroCreation");
     }
-
     // -----------------------------------------------------------------------------------
     // START PANEL
     // -----------------------------------------------------------------------------------
@@ -582,25 +591,35 @@ public class GameInterfaceGUI extends JFrame {
 
         panel.add(label, BorderLayout.CENTER);
 
-        // Debug print to see what we have
-        System.out.println("Current Hero: " + (currentHero != null ? currentHero.getName() : "null"));
+        // Add component listener to update hero info when panel becomes visible
+        panel.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                System.out.println("Congratulations panel shown - fetching latest hero data");
 
-        if (currentHero != null && currentHero.getName() != null) {
-            label.setText("Congratulations " + currentHero.getName() + "! You've completed the adventure!");
-        } else {
-            try {
-                // One last attempt to get the hero
-                currentHero = heroService.getCurrentHero();
-                if (currentHero != null && currentHero.getName() != null) {
-                    label.setText("Congratulations " + currentHero.getName() + "! You've completed the adventure!");
-                } else {
+                try {
+                    // Force a fresh reload of the hero from the backend
+                    currentHero = heroService.getCurrentHero();
+
+                    // The key issue - compare values
+                    System.out.println("HERO DEBUG INFO:");
+                    System.out.println("- ID: " + (currentHero != null ? currentHero.getId() : "null"));
+                    System.out.println("- Name: " + (currentHero != null ? currentHero.getName() : "null"));
+                    System.out.println("- CreatedAt: " + (currentHero != null ? currentHero.getCreatedAt() : "null"));
+                    System.out.println("- LocationID: " + (currentHero != null ? currentHero.getCurrentLocationID() : "null"));
+
+                    if (currentHero != null && currentHero.getName() != null) {
+                        label.setText("Congratulations " + currentHero.getName() + "! You've completed the adventure!");
+                    } else {
+                        label.setText("Congratulations! You've completed the adventure!");
+                    }
+                } catch (Exception ex) {
+                    System.err.println("Error fetching hero in congratulations panel: " + ex.getMessage());
+                    ex.printStackTrace();
                     label.setText("Congratulations! You've completed the adventure!");
                 }
-            } catch (Exception e) {
-                label.setText("Congratulations! You've completed the adventure!");
-                e.printStackTrace();
             }
-        }
+        });
 
         JButton quitButton = new JButton("Quit");
         styleButton(quitButton, new Color(139, 0, 0), new Color(240, 240, 240), 20, 200, 40);
@@ -615,7 +634,6 @@ public class GameInterfaceGUI extends JFrame {
 
         mainPanel.add(panel, "finalCongratulations");
     }
-
     // -----------------------------------------------------------------------------------
     // RESTART GAME
     // -----------------------------------------------------------------------------------

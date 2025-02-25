@@ -7,7 +7,6 @@ public class LocationDTO {
     private boolean completed;
     private boolean locked;
 
-    // Getters and setters
     public Long getId() {
         return id;
     }

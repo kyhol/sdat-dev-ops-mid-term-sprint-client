@@ -23,6 +23,23 @@ import java.util.concurrent.CompletableFuture;
 import com.keyin.plushie.PlushieDTO;
 import com.keyin.plushie.PlushieService;
 
+// Additional imports for the final boss panel
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridLayout;
+import java.awt.Insets;
+import java.awt.Point;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.SwingConstants;
+import javax.swing.Timer;
+
 
 /**
  * GameInterfaceGUI with:
@@ -552,26 +569,184 @@ public class GameInterfaceGUI extends JFrame {
     // -----------------------------------------------------------------------------------
     private void createFinalBossPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        JLabel label = new JLabel("FINAL BOSS!", SwingConstants.CENTER);
-        label.setFont(new Font("Arial", Font.BOLD, 24));
-        panel.add(label, BorderLayout.CENTER);
+        panel.setBackground(Color.BLACK);
 
-        JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 10, 10));
-        JButton winButton = new JButton("Win Final Boss");
-        winButton.addActionListener(e -> {
-            outputArea.setText("Fighting final boss...\nVictory!");
-            cardLayout.show(mainPanel, "finalCongratulations");
+        // Epic title with custom font and color
+        JLabel titleLabel = new JLabel("THE DARKNESS AWAITS", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 28));
+        titleLabel.setForeground(Color.RED);
+        panel.add(titleLabel, BorderLayout.NORTH);
+
+        // Dialog panel with scrolling text effect
+        JTextArea dialogArea = new JTextArea();
+        dialogArea.setEditable(false);
+        dialogArea.setLineWrap(true);
+        dialogArea.setWrapStyleWord(true);
+        dialogArea.setFont(new Font("Serif", Font.BOLD, 16));
+        dialogArea.setBackground(Color.BLACK);
+        dialogArea.setForeground(Color.YELLOW);
+        dialogArea.setMargin(new Insets(20, 20, 20, 20));
+        JScrollPane scrollPane = new JScrollPane(dialogArea);
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        // Button panel
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+        buttonPanel.setBackground(Color.BLACK);
+
+        // Fight button with dramatic styling
+        JButton fightButton = new JButton("FIGHT THE DARKNESS!");
+        fightButton.setFont(new Font("Arial", Font.BOLD, 18));
+        fightButton.setBackground(new Color(180, 0, 0));
+        fightButton.setForeground(Color.WHITE);
+        fightButton.setFocusPainted(false);
+
+        // GIF panel for battle animation
+        JLabel gifLabel = new JLabel();
+        gifLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        gifLabel.setVisible(false);
+        panel.add(gifLabel, BorderLayout.CENTER);
+
+        // Counter for explosion effects
+        final int[] explosionCount = {0};
+
+        // Define the epic boss dialog
+        String[] bossDialog = {
+                "You have come far, brave adventurer...",
+                "BUT YOUR JOURNEY ENDS HERE!",
+                "I am Lord Bytecrusher, Destroyer of Code, Corruptor of Variables!",
+                "Did you really think your puny algorithms could defeat ME?",
+                "*evil laughter* MUAHAHAHAHA!",
+                "Wait... is that a debugging tool in your pocket?",
+                "NO! NOT THE STACK TRACE ANALYZER!",
+                "Very well then... let us dance the final dance of DOOM!",
+                "Prepare yourself for complete and utter... COMPILATION FAILURE!"
+        };
+
+        // Timer for typewriter effect
+        final int[] dialogIndex = {0};
+        final int[] charIndex = {0};
+        Timer typewriterTimer = new Timer(30, null);
+        typewriterTimer.addActionListener(e -> {
+            if (dialogIndex[0] < bossDialog.length) {
+                String currentLine = bossDialog[dialogIndex[0]];
+                if (charIndex[0] < currentLine.length()) {
+                    dialogArea.append(String.valueOf(currentLine.charAt(charIndex[0])));
+                    charIndex[0]++;
+                } else {
+                    dialogArea.append("\n\n");
+                    dialogIndex[0]++;
+                    charIndex[0] = 0;
+                    if (dialogIndex[0] == bossDialog.length) {
+                        fightButton.setEnabled(true);
+                        typewriterTimer.stop();
+                    }
+                }
+            }
         });
-        JButton loseButton = new JButton("Lose Final Boss");
-        loseButton.addActionListener(e -> {
-            outputArea.setText("You lost to the final boss. Game Over!");
-            restartGame();
+
+        // Start with button disabled until dialog finishes
+        fightButton.setEnabled(false);
+
+        // Fight button action
+        fightButton.addActionListener(e -> {
+            // Hide dialog and show battle animation
+            scrollPane.setVisible(false);
+            fightButton.setEnabled(false);
+            gifLabel.setVisible(true);
+
+            // Load and display the battle GIF
+            try {
+                ImageIcon icon = new ImageIcon(getClass().getResource("/gif/finalboss.gif"));
+                gifLabel.setIcon(icon);
+            } catch (Exception ex) {
+                System.err.println("Error loading GIF: " + ex.getMessage());
+            }
+
+            // Create explosion effect timer
+            Timer explosionTimer = new Timer(300, null);
+            explosionTimer.addActionListener(event -> {
+                // Create random explosions across the screen
+                JLabel explosion = new JLabel("💥");
+                explosion.setFont(new Font("Arial", Font.PLAIN, 24 + (int)(Math.random() * 20)));
+                explosion.setForeground(new Color(
+                        150 + (int)(Math.random() * 105),
+                        (int)(Math.random() * 100),
+                        (int)(Math.random() * 100)
+                ));
+
+                // Random position for explosion
+                int x = (int)(Math.random() * panel.getWidth());
+                int y = (int)(Math.random() * panel.getHeight());
+                explosion.setBounds(x, y, 50, 50);
+
+                panel.add(explosion);
+                panel.setComponentZOrder(explosion, 0);
+                panel.repaint();
+
+                // Shake the panel for dramatic effect
+                shakePanel(panel);
+
+                explosionCount[0]++;
+
+                // After enough explosions, proceed to victory
+                if (explosionCount[0] > 15) {
+                    explosionTimer.stop();
+
+                    // Show victory message
+                    outputArea.setText("The Darkness falls before your might!\nVictory is yours, brave debugger!");
+
+                    // Short delay before showing victory screen
+                    Timer victoryTimer = new Timer(2000, evt -> {
+                        cardLayout.show(mainPanel, "finalCongratulations");
+                    });
+                    victoryTimer.setRepeats(false);
+                    victoryTimer.start();
+                }
+            });
+
+            // Short delay before starting explosions
+            Timer delayTimer = new Timer(3000, evt -> explosionTimer.start());
+            delayTimer.setRepeats(false);
+            delayTimer.start();
         });
-        buttonPanel.add(winButton);
-        buttonPanel.add(loseButton);
+
+        buttonPanel.add(fightButton);
         panel.add(buttonPanel, BorderLayout.SOUTH);
 
+        // Add a "Run Away" button for humor
+        JButton runButton = new JButton("Run Away");
+        runButton.setFont(new Font("Arial", Font.ITALIC, 12));
+        runButton.addActionListener(e -> {
+            dialogArea.setText("You try to flee, but the exit is blocked by a NULL POINTER EXCEPTION!\n\nThere is no escape from this battle...");
+            runButton.setEnabled(false);
+        });
+        buttonPanel.add(runButton);
+
         mainPanel.add(panel, "finalBoss");
+
+        // Start the dialog when the panel is added
+        typewriterTimer.start();
+    }
+
+    // Helper method to create a shaking effect
+    private void shakePanel(JPanel panel) {
+        final Point originalLocation = panel.getLocation();
+        final Timer shakeTimer = new Timer(20, null);
+        final int[] count = {0};
+
+        shakeTimer.addActionListener(e -> {
+            int xOffset = (int)(Math.random() * 10 - 5);
+            int yOffset = (int)(Math.random() * 10 - 5);
+            panel.setLocation(originalLocation.x + xOffset, originalLocation.y + yOffset);
+
+            count[0]++;
+            if (count[0] > 10) {
+                panel.setLocation(originalLocation);
+                shakeTimer.stop();
+            }
+        });
+
+        shakeTimer.start();
     }
 
     // -----------------------------------------------------------------------------------
@@ -591,6 +766,20 @@ public class GameInterfaceGUI extends JFrame {
 
         panel.add(label, BorderLayout.CENTER);
 
+        // Create a text area to display all collected data
+        JTextArea summaryTextArea = new JTextArea();
+        summaryTextArea.setEditable(false);
+        summaryTextArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
+        summaryTextArea.setLineWrap(true);
+        summaryTextArea.setWrapStyleWord(true);
+        summaryTextArea.setVisible(false); // Initially hidden
+
+        JScrollPane scrollPane = new JScrollPane(summaryTextArea);
+        scrollPane.setPreferredSize(new Dimension(600, 300));
+        scrollPane.setVisible(false); // Initially hidden
+
+        panel.add(scrollPane, BorderLayout.NORTH);
+
         // Add component listener to update hero info when panel becomes visible
         panel.addComponentListener(new ComponentAdapter() {
             @Override
@@ -598,10 +787,8 @@ public class GameInterfaceGUI extends JFrame {
                 System.out.println("Congratulations panel shown - fetching latest hero data");
 
                 try {
-                    // Force a fresh reload of the hero from the backend
                     currentHero = heroService.getCurrentHero();
 
-                    // The key issue - compare values
                     System.out.println("HERO DEBUG INFO:");
                     System.out.println("- ID: " + (currentHero != null ? currentHero.getId() : "null"));
                     System.out.println("- Name: " + (currentHero != null ? currentHero.getName() : "null"));
@@ -621,18 +808,152 @@ public class GameInterfaceGUI extends JFrame {
             }
         });
 
+        JButton summaryButton = new JButton("View Game Summary");
+        styleButton(summaryButton, new Color(0, 100, 150), new Color(240, 240, 240), 20, 200, 40);
+        summaryButton.addActionListener(e -> {
+            boolean isVisible = scrollPane.isVisible();
+
+            if (!isVisible) {
+                fetchAndDisplayGameSummary(summaryTextArea);
+            }
+
+            scrollPane.setVisible(!isVisible);
+            summaryTextArea.setVisible(!isVisible);
+
+            // Update button text based on visibility
+            summaryButton.setText(isVisible ? "View Game Summary" : "Hide Game Summary");
+        });
+
         JButton quitButton = new JButton("Quit");
         styleButton(quitButton, new Color(139, 0, 0), new Color(240, 240, 240), 20, 200, 40);
         quitButton.addActionListener(e -> System.exit(0));
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         buttonPanel.setOpaque(false);
+        buttonPanel.add(summaryButton);
         buttonPanel.add(quitButton);
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         panel.add(buttonPanel, BorderLayout.SOUTH);
 
         mainPanel.add(panel, "finalCongratulations");
+    }
+
+    /**
+     * Fetches data from all the main entities and displays it in the text area
+     * using only the existing services and data
+     * @param textArea The JTextArea to display the data in
+     */
+    private void fetchAndDisplayGameSummary(JTextArea textArea) {
+        textArea.setText("Loading game summary...");
+
+        // Create a new thread to not block the UI
+        new Thread(() -> {
+            StringBuilder summary = new StringBuilder();
+            summary.append("=== GAME ADVENTURE SUMMARY ===\n\n");
+
+            // HERO INFO
+            try {
+                summary.append("== HERO INFORMATION ==\n");
+                if (currentHero != null) {
+                    summary.append("ID: ").append(currentHero.getId()).append("\n");
+                    summary.append("Name: ").append(currentHero.getName()).append("\n");
+                    summary.append("Created At: ").append(currentHero.getCreatedAt()).append("\n");
+                    summary.append("Current Location ID: ").append(currentHero.getCurrentLocationID()).append("\n\n");
+                } else {
+                    summary.append("No hero information available.\n\n");
+                }
+            } catch (Exception ex) {
+                summary.append("Error accessing hero info: ").append(ex.getMessage()).append("\n\n");
+            }
+
+            // LOCATIONS INFO
+            try {
+                summary.append("== LOCATIONS VISITED ==\n");
+                int completedCount = locationService.getCompletedLocationsCount();
+
+                for (LocationDTO loc : allLocations) {
+                    summary.append("- ").append(loc.getName()).append(" (ID: ").append(loc.getId()).append(")\n");
+                    summary.append("  Description: ").append(loc.getDescription()).append("\n");
+                    summary.append("  Completed: ").append(loc.isCompleted() ? "Yes" : "No").append("\n");
+                    summary.append("  Locked: ").append(loc.isLocked() ? "Yes" : "No").append("\n\n");
+                }
+
+                summary.append("Total Locations: ").append(allLocations.size()).append("\n");
+                summary.append("Completed Locations: ").append(completedCount).append("\n\n");
+            } catch (Exception ex) {
+                summary.append("Error accessing locations info: ").append(ex.getMessage()).append("\n\n");
+            }
+
+            // PLUSHIES INFO
+            try {
+                summary.append("== PLUSHIES COLLECTED ==\n");
+
+                if (collectedPlushies != null && !collectedPlushies.isEmpty()) {
+                    for (PlushieDTO plushie : collectedPlushies) {
+                        summary.append("- ").append(plushie.getName()).append(" (ID: ").append(plushie.getId()).append(")\n");
+                        summary.append("  Description: ").append(plushie.getDescription()).append("\n");
+                        summary.append("  Color: ").append(plushie.getColor()).append("\n\n");
+                    }
+
+                    summary.append("Total Collected Plushies: ").append(collectedPlushies.size()).append("\n\n");
+                } else {
+                    // Try to fetch from service
+                    try {
+                        List<PlushieDTO> allPlushies = plushieService.getAllPlushies();
+                        List<PlushieDTO> collected = allPlushies.stream()
+                                .filter(PlushieDTO::isCollected)
+                                .toList();
+
+                        for (PlushieDTO plushie : collected) {
+                            summary.append("- ").append(plushie.getName()).append(" (ID: ").append(plushie.getId()).append(")\n");
+                            summary.append("  Description: ").append(plushie.getDescription()).append("\n");
+                            summary.append("  Color: ").append(plushie.getColor()).append("\n\n");
+                        }
+
+                        summary.append("Total Collected Plushies: ").append(collected.size()).append("\n\n");
+                    } catch (Exception e) {
+                        summary.append("Plushies Collected: ").append(plushiesCollected).append("\n\n");
+                    }
+                }
+            } catch (Exception ex) {
+                summary.append("Plushies Collected: ").append(plushiesCollected).append("\n\n");
+            }
+
+            // MINIGAMES/COMPLETED LOCATIONS
+            try {
+                summary.append("== COMPLETED MINIGAMES ==\n");
+
+                for (Long locationId : completedLocations) {
+                    String locationName = "Unknown";
+                    String description = "";
+                    for (LocationDTO loc : allLocations) {
+                        if (loc.getId().equals(locationId)) {
+                            locationName = loc.getName();
+                            description = loc.getDescription();
+                            break;
+                        }
+                    }
+                    summary.append("- Completed minigame at: ").append(locationName).append(" (ID: ").append(locationId).append(")\n");
+                    if (!description.isEmpty()) {
+                        summary.append("  Location Description: ").append(description).append("\n");
+                    }
+                    summary.append("\n");
+                }
+
+                summary.append("Total Completed Minigames: ").append(completedLocations.size()).append("\n\n");
+            } catch (Exception ex) {
+                summary.append("Error accessing completed locations: ").append(ex.getMessage()).append("\n\n");
+            }
+
+            summary.append("=== END OF GAME SUMMARY ===");
+
+            // Update the text area on the EDT
+            SwingUtilities.invokeLater(() -> {
+                textArea.setText(summary.toString());
+                textArea.setCaretPosition(0); // Scroll to top
+            });
+        }).start();
     }
     // -----------------------------------------------------------------------------------
     // RESTART GAME

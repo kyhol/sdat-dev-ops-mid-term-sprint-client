@@ -36,7 +36,6 @@ public class HeroService {
         }
 
         currentHero = objectMapper.readValue(response.body(), HeroDTO.class);
-        // Update the ID in case it changed (though it shouldn't for updates)
         if (currentHero != null && currentHero.getId() != null) {
             currentHeroId = currentHero.getId();
             System.out.println("Updated hero ID: " + currentHeroId);
@@ -60,7 +59,6 @@ public class HeroService {
         }
 
         currentHero = objectMapper.readValue(response.body(), HeroDTO.class);
-        // Save the ID for future use
         if (currentHero != null && currentHero.getId() != null) {
             currentHeroId = currentHero.getId();
             System.out.println("Set current hero ID to: " + currentHeroId);

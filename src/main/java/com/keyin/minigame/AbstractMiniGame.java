@@ -28,18 +28,14 @@ public abstract class AbstractMiniGame {
     }
 
     private void initializeUI() {
-        // Create the main panel with BorderLayout
         gamePanel = new JPanel(new BorderLayout());
 
-        // Create and add the art panel
         artPanel = new GameArtPanel();
         gamePanel.add(artPanel, BorderLayout.CENTER);
 
-        // Create and add the dialog box
         dialogBox = new DialogBox();
         gamePanel.add(dialogBox, BorderLayout.SOUTH);
 
-        // Add key listener to handle user input
         gamePanel.setFocusable(true);
         gamePanel.addKeyListener(new KeyAdapter() {
             @Override
@@ -48,28 +44,21 @@ public abstract class AbstractMiniGame {
             }
         });
 
-        // Let the specific mini-game customize its UI
         customizeUI();
     }
 
-    // Methods that specific mini-games must implement
     protected abstract void customizeUI();
     protected abstract void handleKeyPress(KeyEvent e);
     protected abstract String getGameSpecificAsciiArt();
 
-    // Method to start the game
     public void startGame() {
-        // Set the ASCII art specific to this game
         artPanel.setArt(getGameSpecificAsciiArt());
 
-        // Show the introduction text
         dialogBox.showText(getIntroText());
 
-        // Make sure the panel has focus to receive key events
         gamePanel.requestFocusInWindow();
     }
 
-    // Methods that can be overridden by specific mini-games if needed
     protected String getIntroText() {
         return "Welcome to the mini-game at " + getLocationName() + "!\nPress any key to continue...";
     }
@@ -85,7 +74,6 @@ public abstract class AbstractMiniGame {
         }
     }
 
-    // Methods to set callbacks
     public void setOnCompleteCallback(Runnable callback) {
         this.onCompleteCallback = callback;
     }
@@ -94,7 +82,6 @@ public abstract class AbstractMiniGame {
         this.onFailCallback = callback;
     }
 
-    // Helper methods that mini-games can use
     protected void completeGame() {
         if (onCompleteCallback != null) {
             onCompleteCallback.run();
@@ -107,10 +94,9 @@ public abstract class AbstractMiniGame {
         }
     }
 
-    // Return the panel to be added to the card layout
     public JPanel getGamePanel() {
         return gamePanel;
-    }// Add these to AbstractMiniGame.java
+    }
     public Long getLocationId() {
         return locationId;
     }

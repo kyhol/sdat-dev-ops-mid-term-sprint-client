@@ -9,35 +9,17 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
 
-/**
- * This client-side PlushieService is a REST wrapper that communicates with the server.
- * It provides methods to:
- * - Fetch all plushies
- * - Add new plushies
- * - Update existing plushies
- */
 public class PlushieService {
     private final HttpClient client;
     private final ObjectMapper objectMapper;
     private final String baseUrl;
 
-    /**
-     * Constructs a new PlushieService.
-     *
-     * @param baseUrl The base URL of your server (e.g., "http://localhost:8080")
-     */
     public PlushieService(String baseUrl) {
         this.client = HttpClient.newHttpClient();
         this.objectMapper = new ObjectMapper();
         this.baseUrl = baseUrl + "/plushie";
     }
 
-    /**
-     * Fetches all plushies from the server.
-     *
-     * @return A list of PlushieDTO objects.
-     * @throws Exception if the HTTP call fails.
-     */
     public List<PlushieDTO> getAllPlushies() throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl))
@@ -54,12 +36,6 @@ public class PlushieService {
         });
     }
 
-    /**
-     * Marks a plushie as collected by updating its collected status to true.
-     *
-     * @param id The ID of the plushie to update.
-     * @throws Exception if the HTTP request fails.
-     */
     public void collectPlushie(Long id) throws Exception {
         String url = baseUrl + "/" + id + "/collect";
 
@@ -78,10 +54,6 @@ public class PlushieService {
         }
     }
 
-    /**
-     * Resets all plushies on the server.
-     * @throws Exception if the HTTP call fails.
-     */
     public void resetAllPlushies() throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/reset"))

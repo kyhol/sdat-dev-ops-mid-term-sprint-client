@@ -1,13 +1,8 @@
 package com.keyin.minigame;
 
-
-import java.awt.AlphaComposite;
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
 
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -19,8 +14,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileInputStream;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -49,7 +43,7 @@ import org.w3c.dom.svg.SVGDocument;
  */
 public class ShadowValleyMiniGame extends AbstractMiniGame {
     private static final int BOARD_SIZE = 8;
-    private static final int REQUIRED_VICTIMS = 3;  // Added constant for required victims
+    private static final int REQUIRED_VICTIMS = 3;
     private JButton[][] boardButtons;
     private boolean[][] hasShadowCat;
     private boolean[][] initialShadowCats;
@@ -100,12 +94,9 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
         JLabel imageLabel = new JLabel();
         if (imageUrl != null) {
             ImageIcon originalIcon = new ImageIcon(imageUrl);
-            // Make the image stretch to fill the panel width
             imageLabel.setIcon(originalIcon);
             imageLabel.setPreferredSize(new Dimension(450, 300));
-            // Use horizontal stretch by setting the horizontal alignment
             imageLabel.setHorizontalAlignment(JLabel.CENTER);
-            // Enable image scaling
             imageLabel.setIcon(new ImageIcon(originalIcon.getImage().getScaledInstance(450, 300, Image.SCALE_FAST)));
         }
 
@@ -118,7 +109,6 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
         rulesText.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 10));
         rulesText.setPreferredSize(new Dimension(450, 200));
         rulesText.setMinimumSize(new Dimension(450, 200));
-        // Increase text size
         rulesText.setFont(new Font("SansSerif", Font.PLAIN, 14));
 
         String[] rulesLines = {
@@ -158,7 +148,6 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
         maquitoPanel.setBackground(Color.BLACK);
         maquitoPanel.setPreferredSize(new Dimension(450, 600));
 
-        // Wrap imageLabel in a panel to make it fill the width
         JPanel imagePanel = new JPanel(new BorderLayout());
         imagePanel.setBackground(Color.BLACK);
         imagePanel.add(imageLabel, BorderLayout.CENTER);
@@ -210,27 +199,13 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
 
     private void loadAudioFiles() {
         try {
-            // Try multiple approaches to find the resource
             URL bowserURL = getClass().getResource("/audio/ShadowValley.wav");
 
-            if (bowserURL == null) {
-                // Try without leading slash
-                bowserURL = getClass().getResource("audio/ShadowValley.wav");
-            }
-
-            if (bowserURL == null) {
-                // Try using ClassLoader directly
-                bowserURL = getClass().getClassLoader().getResource("audio/ShadowValley.wav");
-            }
-
             if (bowserURL != null) {
-                System.out.println("Audio file found at: " + bowserURL);
                 bowserClip = loadAudioClip(bowserURL);
-                System.out.println("Audio clip loaded successfully: " + (bowserClip != null));
+                System.out.println("Audio clip loaded successfully.");
             } else {
-                System.err.println("Could not find ShadowValley.wav - resource path may be incorrect");
-                // Print class path for debugging
-                System.err.println("Class path: " + getClass().getProtectionDomain().getCodeSource().getLocation());
+                System.err.println("Could not find ShadowValley.wav - resource path may be incorrect.");
             }
         } catch (Exception ex) {
             System.err.println("Error loading audio files: " + ex.getMessage());
@@ -288,12 +263,10 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
 
         Point clickedPoint = new Point(row, col);
         if (hasShadowCat[row][col]) {
-            // Remove piece
             hasShadowCat[row][col] = false;
             playerPieces.remove(clickedPoint);
             allPieces.remove(clickedPoint);
         } else {
-            // Add piece
             hasShadowCat[row][col] = true;
             playerPieces.add(clickedPoint);
             allPieces.add(clickedPoint);
@@ -303,55 +276,51 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
         updateBoard();
 
         if (playerPieces.size() == REQUIRED_VICTIMS && !hasAnyConflicts()) {
-            // Show victory animation for 3 seconds
             showVictoryAnimation();
         }
     }
 
     private void showVictoryAnimation() {
-        // Create a JDialog to display the GIF in the center of the screen
         JDialog animationDialog = new JDialog();
         animationDialog.setUndecorated(true);
-        animationDialog.setBackground(new Color(0, 0, 0, 0)); // Transparent background
+        animationDialog.setBackground(new Color(0, 0, 0, 0));
 
         URL gifUrl = getClass().getResource("/gif/ShadowVictory.gif");
         if (gifUrl != null) {
             ImageIcon gifIcon = new ImageIcon(gifUrl);
             JLabel gifLabel = new JLabel(gifIcon);
 
-            // Create a panel with a semi-transparent background
+            JLabel victoryText = new JLabel("You have defeated Maquito's Shadow Cats!");
+            victoryText.setForeground(Color.WHITE);
+            victoryText.setFont(new Font("Arial", Font.BOLD, 18));
+            victoryText.setHorizontalAlignment(SwingConstants.CENTER);
+
             JPanel panel = new JPanel(new BorderLayout());
-            panel.setBackground(new Color(0, 0, 0, 150)); // Semi-transparent black
+            panel.setBackground(new Color(0, 0, 0, 150));
             panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
             panel.add(gifLabel, BorderLayout.CENTER);
+            panel.add(victoryText, BorderLayout.SOUTH);
 
             animationDialog.add(panel);
             animationDialog.pack();
-
-            // Center the dialog on the screen
             animationDialog.setLocationRelativeTo(gamePanel);
-
-            // Show the dialog
             animationDialog.setVisible(true);
 
-            // Schedule the dialog to close after 3 seconds
-            Timer closeTimer = new Timer(5000, e -> {
+            Timer closeTimer = new Timer(3500, e -> {
                 animationDialog.dispose();
-                // Now show the victory message
                 cleanupAudioResources();
-                dialogBox.showText("You've conquered the shadows! The Shadow Cat plushie is yours!", this::completeGame);
+                super.completeGame();
             });
             closeTimer.setRepeats(false);
             closeTimer.start();
         } else {
-            // If GIF can't be loaded, just show the victory message
             cleanupAudioResources();
-            dialogBox.showText("You've conquered the shadows! The Shadow Cat plushie is yours!", this::completeGame);
+            super.completeGame();
         }
     }
 
     private boolean hasAnyConflicts() {
-        // Check each piece against every other piece
         for (int i = 0; i < allPieces.size(); i++) {
             Point p1 = allPieces.get(i);
             for (int j = i + 1; j < allPieces.size(); j++) {
@@ -365,18 +334,16 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
     }
 
     private boolean isConflict(Point p1, Point p2) {
-        return p1.x == p2.x || // Same row
-                p1.y == p2.y || // Same column
-                Math.abs(p1.x - p2.x) == Math.abs(p1.y - p2.y); // Diagonal
+        return p1.x == p2.x ||
+                p1.y == p2.y ||
+                Math.abs(p1.x - p2.x) == Math.abs(p1.y - p2.y);
     }
 
     private void checkConflicts() {
-        // Clear all conflicts
         for (boolean[] row : conflictSquares) {
             Arrays.fill(row, false);
         }
 
-        // Check each piece against every other piece
         for (int i = 0; i < allPieces.size(); i++) {
             Point p1 = allPieces.get(i);
             for (int j = i + 1; j < allPieces.size(); j++) {
@@ -412,20 +379,17 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
 
     private ImageIcon createShadowCatIcon(Color color) {
         try {
-            // Load the SVG file from resources
             InputStream inputStream = getClass().getResourceAsStream("/image/ShadowCat.svg");
             if (inputStream == null) {
                 throw new IOException("Resource not found: /image/ShadowCat.svg");
             }
 
-            // Create SVG document
             String parser = XMLResourceDescriptor.getXMLParserClassName();
             SAXSVGDocumentFactory factory = new SAXSVGDocumentFactory(parser);
             SVGDocument document = factory.createSVGDocument(
-                    null, // No URI needed when using InputStream
+                    null,
                     inputStream);
 
-            // Apply color to the SVG elements if needed
             NodeList elements = document.getElementsByTagName("*");
             for (int i = 0; i < elements.getLength(); i++) {
                 Element element = (Element) elements.item(i);
@@ -435,17 +399,14 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
                 }
             }
 
-            // Set up the transcoder
             int iconSize = 50;
             BufferedImageTranscoder transcoder = new BufferedImageTranscoder();
             transcoder.addTranscodingHint(PNGTranscoder.KEY_WIDTH, (float) iconSize);
             transcoder.addTranscodingHint(PNGTranscoder.KEY_HEIGHT, (float) iconSize);
 
-            // Perform the transcoding
             TranscoderInput input = new TranscoderInput(document);
             transcoder.transcode(input, null);
 
-            // Get the resulting image
             BufferedImage image = transcoder.getBufferedImage();
 
             return new ImageIcon(image);
@@ -455,7 +416,6 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
         }
     }
 
-    // Helper class to get a BufferedImage from the transcoder
     private static class BufferedImageTranscoder extends ImageTranscoder {
         private BufferedImage image = null;
 
@@ -474,28 +434,7 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
         }
     }
 
-    private boolean isGameWon() {
-        int placedVictims = 0;
-        boolean hasConflicts = false;
-
-        // Count placed victims and check for conflicts
-        for (int i = 0; i < BOARD_SIZE; i++) {
-            for (int j = 0; j < BOARD_SIZE; j++) {
-                if (hasShadowCat[i][j] && !initialShadowCats[i][j]) {
-                    placedVictims++;
-                    if (conflictSquares[i][j]) {
-                        hasConflicts = true;
-                    }
-                }
-            }
-        }
-
-        // Win condition: exactly 3 victims placed with no conflicts
-        return placedVictims == REQUIRED_VICTIMS && !hasConflicts;
-    }
-
     private void generateNewGame() {
-        // Clear all arrays
         for (boolean[] row : hasShadowCat) {
             Arrays.fill(row, false);
         }

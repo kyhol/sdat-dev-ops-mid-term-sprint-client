@@ -15,19 +15,34 @@ import javax.sound.sampled.Clip;
 import javax.swing.*;
 import java.awt.*;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.*;
 import java.util.List;
-
-
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
+import javax.swing.Timer;
+
+import org.apache.batik.anim.dom.SAXSVGDocumentFactory;
+import org.apache.batik.transcoder.TranscoderInput;
+import org.apache.batik.transcoder.TranscoderOutput;
+import org.apache.batik.transcoder.image.ImageTranscoder;
+import org.apache.batik.transcoder.image.PNGTranscoder;
+import org.apache.batik.util.XMLResourceDescriptor;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.svg.SVGDocument;
 
 /**
  * Simplified implementation for Shadow Valley Mini-Game (Location ID 6)
@@ -51,6 +66,7 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
     public ShadowValleyMiniGame(Long locationId, Long heroId, JFrame parentFrame) {
         super(locationId, heroId, parentFrame);
         loadAudioFiles();
+        playAudio(bowserClip);
     }
 
     @Override
@@ -76,63 +92,93 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
         gamePanel.setBackground(Color.BLACK);
 
         JLabel titleLabel = new JLabel("Shadow Valley", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Serif", Font.BOLD, 36));
+        titleLabel.setFont(new Font("Serif", Font.BOLD, 30));
         titleLabel.setForeground(new Color(138, 206, 0));
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
 
         URL imageUrl = getClass().getResource("/image/Shadow.jpg");
         JLabel imageLabel = new JLabel();
         if (imageUrl != null) {
-            ImageIcon imageIcon = new ImageIcon(new ImageIcon(imageUrl).getImage().getScaledInstance(150, 150, Image.SCALE_SMOOTH));
+            ImageIcon imageIcon = new ImageIcon(imageUrl);
             imageLabel.setIcon(imageIcon);
+            imageLabel.setPreferredSize(new Dimension(450, 300)); // Set a fixed size
         }
 
-        JTextArea rulesText = new JTextArea(
-                "I am Maquito, Lord of the Shadows:\n" +
-                        "If you seek a Shadow Cat Plushie,\n" +
-                        "You have to show me you can take on my Shadow Cats.\n" +
-                        "Place your victims on the board so that no Shadow Cat can attack them.\n" +
-                        "The victims are also unable to cross each other's paths.\n" +
-                        "Shadow Cats lie in wait but can move horizontally, vertically, and diagonally,\n" +
-                        "As can the members of your team.\n" +
-                        "Click on empty squares to place or remove your victims.\n" +
-                        "Good Luck.\n" +
-                        "I didn't really mean that.\n" +
-                        "It's just a thing I heard people say.");
+        JTextArea rulesText = new JTextArea();
         rulesText.setEditable(false);
         rulesText.setLineWrap(true);
         rulesText.setWrapStyleWord(true);
         rulesText.setBackground(new Color(30, 30, 30));
         rulesText.setForeground(new Color(200, 200, 200));
         rulesText.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 10));
-        rulesText.setPreferredSize(new Dimension(400, 150));
+        rulesText.setPreferredSize(new Dimension(400, 200));
+        rulesText.setMinimumSize(new Dimension(400, 200));
 
-        JPanel maquitoPanel = new JPanel(new BorderLayout(10, 0));
+        String[] rulesLines = {
+                "I am Maquito, Lord of the Shadows:",
+                "If you seek a Shadow Cat Plushie,",
+                "You have to show me you can take on my Shadow Cats.",
+                "Place your victims on the board so that no Shadow Cat can attack them.",
+                "The victims are also unable to cross each other's paths.",
+                "Shadow Cats lie in wait but can move horizontally, vertically, and diagonally,",
+                "As can the members of your team.",
+                "Click on empty squares to place or remove your victims.",
+                "Good Luck.",
+                "I didn't really mean that.",
+                "It's just a thing I heard people say."
+        };
+
+        Timer textTimer = new Timer(700, new ActionListener() {
+            private int index = 0;
+            private StringBuilder displayedText = new StringBuilder();
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (index < rulesLines.length) {
+                    displayedText.append(rulesLines[index]).append("\n");
+                    rulesText.setText(displayedText.toString());
+                    index++;
+                } else {
+                    ((Timer) e.getSource()).stop();
+                }
+            }
+        });
+
+        textTimer.start();
+
+        JPanel maquitoPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        maquitoPanel.setLayout(new BoxLayout(maquitoPanel, BoxLayout.Y_AXIS));
         maquitoPanel.setBackground(Color.BLACK);
-        maquitoPanel.add(imageLabel, BorderLayout.WEST);
-        maquitoPanel.add(rulesText, BorderLayout.CENTER);
-
-        JPanel introPanel = new JPanel(new BorderLayout());
-        introPanel.setBackground(Color.BLACK);
-        introPanel.add(titleLabel, BorderLayout.NORTH);
-        introPanel.add(maquitoPanel, BorderLayout.CENTER);
+        maquitoPanel.setPreferredSize(new Dimension(450, 600));
+        maquitoPanel.add(imageLabel);
+        maquitoPanel.add(rulesText);
 
         JPanel boardPanel = new JPanel(new GridLayout(BOARD_SIZE, BOARD_SIZE, 2, 2));
         boardPanel.setBackground(Color.BLACK);
         boardPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        boardPanel.setPreferredSize(new Dimension(560, 560));
+        boardPanel.setPreferredSize(new Dimension(600, 600));
 
         for (int row = 0; row < BOARD_SIZE; row++) {
             for (int col = 0; col < BOARD_SIZE; col++) {
                 final int r = row;
                 final int c = col;
                 boardButtons[row][col] = new JButton();
-                boardButtons[row][col].setPreferredSize(new Dimension(70, 70));
+                boardButtons[row][col].setPreferredSize(new Dimension(65, 65));
                 boardButtons[row][col].setMargin(new Insets(0, 0, 0, 0));
                 boardButtons[row][col].addActionListener(e -> handleSquareClick(r, c));
                 boardPanel.add(boardButtons[row][col]);
             }
         }
+
+        JPanel boardContainer = new JPanel(new GridBagLayout());
+        boardContainer.setBackground(Color.BLACK);
+        boardContainer.add(boardPanel);
+
+        JPanel mainPanel = new JPanel(new GridBagLayout());
+        mainPanel.setBackground(Color.DARK_GRAY);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        mainPanel.add(maquitoPanel);
+        mainPanel.add(boardContainer);
 
         statusLabel.setHorizontalAlignment(JLabel.CENTER);
         statusLabel.setForeground(new Color(138, 206, 0));
@@ -141,26 +187,59 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
         statusLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
         statusLabel.setPreferredSize(new Dimension(600, 40));
 
-        gamePanel.add(introPanel, BorderLayout.NORTH);
-        gamePanel.add(boardPanel, BorderLayout.CENTER);
+        gamePanel.add(titleLabel, BorderLayout.NORTH);
+        gamePanel.add(mainPanel, BorderLayout.CENTER);
         gamePanel.add(statusLabel, BorderLayout.SOUTH);
 
         generateNewGame();
         colorBoard();
-        playAudio(bowserClip);
     }
 
     private void loadAudioFiles() {
         try {
+            // Try multiple approaches to find the resource
             URL bowserURL = getClass().getResource("/audio/ShadowValley.wav");
+
+            if (bowserURL == null) {
+                // Try without leading slash
+                bowserURL = getClass().getResource("audio/ShadowValley.wav");
+            }
+
+            if (bowserURL == null) {
+                // Try using ClassLoader directly
+                bowserURL = getClass().getClassLoader().getResource("audio/ShadowValley.wav");
+            }
+
             if (bowserURL != null) {
+                System.out.println("Audio file found at: " + bowserURL);
                 bowserClip = loadAudioClip(bowserURL);
+                System.out.println("Audio clip loaded successfully: " + (bowserClip != null));
             } else {
-                System.err.println("Could not find ShadowValley.wav");
+                System.err.println("Could not find ShadowValley.wav - resource path may be incorrect");
+                // Print class path for debugging
+                System.err.println("Class path: " + getClass().getProtectionDomain().getCodeSource().getLocation());
             }
         } catch (Exception ex) {
             System.err.println("Error loading audio files: " + ex.getMessage());
             ex.printStackTrace();
+        }
+    }
+
+    private void playAudio(Clip clip) {
+        if (clip != null) {
+            try {
+                if (clip.isRunning()) {
+                    clip.stop();
+                }
+                clip.setFramePosition(0);
+                clip.start();
+                System.out.println("Audio playback started");
+            } catch (Exception e) {
+                System.err.println("Error playing audio: " + e.getMessage());
+                e.printStackTrace();
+            }
+        } else {
+            System.err.println("Cannot play audio: clip is null");
         }
     }
 
@@ -170,13 +249,11 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
         clip.open(audioStream);
         return clip;
     }
-    private void playAudio(Clip clip) {
-        if (clip != null) {
-            if (clip.isRunning()) {
-                clip.stop();
-            }
-            clip.setFramePosition(0);
-            clip.start();
+
+    private void cleanupAudioResources() {
+        if (bowserClip != null) {
+            bowserClip.stop();
+            bowserClip.close();
         }
     }
 
@@ -213,6 +290,7 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
         updateBoard();
 
         if (playerPieces.size() == REQUIRED_VICTIMS && !hasAnyConflicts()) {
+            cleanupAudioResources();
             dialogBox.showText("You've conquered the shadows! The Shadow Cat plushie is yours!", this::completeGame);
         }
     }
@@ -278,24 +356,67 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
     }
 
     private ImageIcon createShadowCatIcon(Color color) {
-        int iconSize = 50;
-        BufferedImage image = new BufferedImage(iconSize, iconSize, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2d = image.createGraphics();
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        try {
+            // Load the SVG file from resources
+            InputStream inputStream = getClass().getResourceAsStream("/image/ShadowCat.svg");
+            if (inputStream == null) {
+                throw new IOException("Resource not found: /image/ShadowCat.svg");
+            }
 
-        g2d.setColor(color);
-        int[] xPoints = {iconSize/2, iconSize/5, iconSize/10, iconSize/5, iconSize*3/10,
-                iconSize/2, iconSize*7/10, iconSize*4/5, iconSize*9/10, iconSize*4/5};
-        int[] yPoints = {iconSize/8, iconSize/3, iconSize*2/3, iconSize*3/4, iconSize*5/6,
-                iconSize*7/8, iconSize*5/6, iconSize*3/4, iconSize*2/3, iconSize/3};
-        g2d.fillPolygon(xPoints, yPoints, xPoints.length);
+            // Create SVG document
+            String parser = XMLResourceDescriptor.getXMLParserClassName();
+            SAXSVGDocumentFactory factory = new SAXSVGDocumentFactory(parser);
+            SVGDocument document = factory.createSVGDocument(
+                    null, // No URI needed when using InputStream
+                    inputStream);
 
-        g2d.setColor(color.brighter());
-        g2d.setStroke(new BasicStroke(2));
-        g2d.drawPolygon(xPoints, yPoints, xPoints.length);
+            // Apply color to the SVG elements if needed
+            NodeList elements = document.getElementsByTagName("*");
+            for (int i = 0; i < elements.getLength(); i++) {
+                Element element = (Element) elements.item(i);
+                if (element.hasAttribute("fill") && !element.getAttribute("fill").equals("none")) {
+                    element.setAttribute("fill", String.format("#%02x%02x%02x",
+                            color.getRed(), color.getGreen(), color.getBlue()));
+                }
+            }
 
-        g2d.dispose();
-        return new ImageIcon(image);
+            // Set up the transcoder
+            int iconSize = 50;
+            BufferedImageTranscoder transcoder = new BufferedImageTranscoder();
+            transcoder.addTranscodingHint(PNGTranscoder.KEY_WIDTH, (float) iconSize);
+            transcoder.addTranscodingHint(PNGTranscoder.KEY_HEIGHT, (float) iconSize);
+
+            // Perform the transcoding
+            TranscoderInput input = new TranscoderInput(document);
+            transcoder.transcode(input, null);
+
+            // Get the resulting image
+            BufferedImage image = transcoder.getBufferedImage();
+
+            return new ImageIcon(image);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    // Helper class to get a BufferedImage from the transcoder
+    private static class BufferedImageTranscoder extends ImageTranscoder {
+        private BufferedImage image = null;
+
+        @Override
+        public BufferedImage createImage(int width, int height) {
+            return new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        }
+
+        @Override
+        public void writeImage(BufferedImage img, TranscoderOutput output) {
+            this.image = img;
+        }
+
+        public BufferedImage getBufferedImage() {
+            return image;
+        }
     }
 
     private boolean isGameWon() {

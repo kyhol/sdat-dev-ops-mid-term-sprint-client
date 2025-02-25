@@ -35,14 +35,12 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
     private final int maxWrongGuesses = 6;
     private boolean wonGame = false;
     private int consecutiveWrongGuesses = 0;
-    private JLabel wordProgressLabel;
-    private JLabel demonTauntLabel;
+    private JLabel demonDialogLabel;
     private JTextArea asciiArtArea;
     private JTextField guessField;
-    private JLabel storyLabel;
+    private JLabel wordProgressLabel;
     private Timer animationTimer;
     private JButton guessButton;
-
     private final String[] wrongTaunts = {
         "Bael: Ha! You missed that, mortal!",
         "Bael: Is that the best you can do?",
@@ -50,14 +48,12 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         "Bael: Pathetic! Try harder!",
         "Bael: Your guesses are laughable!"
     };
-
     private final String[] correctTaunts = {
         "Bael: Hmph, you got one... for now.",
         "Bael: Not bad, but don't get cocky!",
         "Bael: A lucky guess, mortal.",
         "Bael: You may have some potential..."
     };
-
     private final String[] rageTaunts = {
         "Bael: You dare continue this insolence?!",
         "Bael: My fury will consume you!",
@@ -75,8 +71,8 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         guessedLetters = new HashSet<>();
 
         GradientPanel gamePanel = new GradientPanel(
-                new Color(25, 0, 0),
-                new Color(70, 10, 10)
+            new Color(25, 0, 0),
+            new Color(70, 10, 10)
         );
         gamePanel.setLayout(new BorderLayout(10, 10));
 
@@ -84,8 +80,8 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         titleLabel.setFont(new Font("Algerian", Font.BOLD, 38));
         titleLabel.setForeground(Color.ORANGE);
         titleLabel.setBorder(new CompoundBorder(
-                new LineBorder(new Color(200, 50, 50), 3),
-                new EmptyBorder(10, 10, 10, 10)
+            new LineBorder(new Color(200, 50, 50), 3),
+            new EmptyBorder(10, 10, 10, 10)
         ));
         gamePanel.add(titleLabel, BorderLayout.NORTH);
 
@@ -96,13 +92,15 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         asciiArtArea.setForeground(new Color(220, 220, 220));
         asciiArtArea.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        JScrollPane asciiScroll = new JScrollPane(asciiArtArea,
-                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        JScrollPane asciiScroll = new JScrollPane(
+            asciiArtArea,
+            JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+            JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+        );
         asciiScroll.setPreferredSize(new Dimension(320, 300));
         gamePanel.add(asciiScroll, BorderLayout.WEST);
 
-        JPanel centerPanel = new JPanel(new GridLayout(3, 1));
+        JPanel centerPanel = new JPanel(new GridLayout(2, 1, 0, 10));
         centerPanel.setOpaque(false);
 
         wordProgressLabel = new JLabel(getWordProgress(), SwingConstants.CENTER);
@@ -110,15 +108,13 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         wordProgressLabel.setForeground(new Color(230, 230, 230));
         centerPanel.add(wordProgressLabel);
 
-        demonTauntLabel = new JLabel("Bael: Prepare to be crushed!", SwingConstants.CENTER);
-        demonTauntLabel.setFont(new Font("Serif", Font.ITALIC, 18));
-        demonTauntLabel.setForeground(new Color(255, 80, 80));
-        centerPanel.add(demonTauntLabel);
-
-        storyLabel = new JLabel("You feel the searing heat of Bael's breath...", SwingConstants.CENTER);
-        storyLabel.setFont(new Font("Serif", Font.PLAIN, 16));
-        storyLabel.setForeground(new Color(250, 200, 100));
-        centerPanel.add(storyLabel);
+        demonDialogLabel = new JLabel("", SwingConstants.CENTER);
+        demonDialogLabel.setFont(new Font("Serif", Font.PLAIN, 18));
+        demonDialogLabel.setForeground(new Color(255, 80, 80));
+        demonDialogLabel.setBorder(new EmptyBorder(5, 20, 5, 20));
+        updateDemonDialog("Bael: Prepare to be crushed!",
+                          "You feel the searing heat of Bael's breath...");
+        centerPanel.add(demonDialogLabel);
 
         gamePanel.add(centerPanel, BorderLayout.CENTER);
 
@@ -151,9 +147,20 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         this.gamePanel.add(gamePanel, BorderLayout.CENTER);
     }
 
+    private void updateDemonDialog(String tauntLine, String storyLine) {
+        String html = "<html><div style='text-align:center;'>"
+            + "<p style='font-size:18px; color:#FF5050; font-weight:bold; font-family:Serif;'>"
+            + tauntLine
+            + "</p>"
+            + "<p style='font-size:16px; color:#FAC864; margin-top:8px; font-family:Serif;'>"
+            + storyLine
+            + "</p>"
+            + "</div></html>";
+        demonDialogLabel.setText(html);
+    }
+
     @Override
     protected void handleKeyPress(KeyEvent e) {
-        // No extra key behavior
     }
 
     private void processGuess() {
@@ -183,8 +190,8 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         if (wordToGuess.indexOf(guessedChar) >= 0) {
             consecutiveWrongGuesses = 0;
             updateWordProgress();
-            demonTauntLabel.setText(getRandomTaunt(correctTaunts));
-            storyLabel.setText("Bael snarls, but you feel a surge of confidence...");
+            String taunt = getRandomTaunt(correctTaunts);
+            updateDemonDialog(taunt, "Bael snarls, but you feel a surge of confidence...");
             showRoarAnimation();
         } else {
             wrongGuesses++;
@@ -192,12 +199,13 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
             asciiArtArea.setText(getGameSpecificAsciiArt());
 
             if (consecutiveWrongGuesses >= 2) {
-                demonTauntLabel.setText(getRandomTaunt(rageTaunts));
+                String taunt = getRandomTaunt(rageTaunts);
+                updateDemonDialog(taunt, "Bael roars in rage! Flames engulf the air!");
                 showRageAnimation();
             } else {
-                demonTauntLabel.setText(getRandomTaunt(wrongTaunts));
+                String taunt = getRandomTaunt(wrongTaunts);
+                updateDemonDialog(taunt, "A gust of scorching wind grazes you. Stay focused!");
             }
-            storyLabel.setText("A gust of scorching wind grazes you. Stay focused!");
         }
 
         if (isWordGuessed()) {
@@ -398,14 +406,12 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
 
     @Override
     protected String getIntroText() {
-        return "Bael the Dragon awaits your challenge...\n" +
-               "Guess the word, or suffer a scorching defeat!";
+        return "Bael the Dragon awaits your challenge...\nGuess the word, or suffer a scorching defeat!";
     }
 
     @Override
     protected void completeGame() {
         if (wonGame) {
-            // Additional final logic if needed
         }
         super.completeGame();
     }
@@ -426,19 +432,15 @@ public class DragonsPeakMiniGame extends AbstractMiniGame {
         if (wordProgressLabel != null) {
             wordProgressLabel.setText(getWordProgress());
         }
-        if (demonTauntLabel != null) {
-            demonTauntLabel.setText("Bael: Prepare to be crushed!");
-        }
-        if (storyLabel != null) {
-            storyLabel.setText("You feel the searing heat of Bael's breath...");
-        }
+        updateDemonDialog("Bael: Prepare to be crushed!",
+                          "You feel the searing heat of Bael's breath...");
+
         if (guessField != null) {
             guessField.setText("");
         }
         super.startGame();
     }
 
-    // Simple gradient panel to enhance the background
     private static class GradientPanel extends JPanel {
         private final Color color1;
         private final Color color2;

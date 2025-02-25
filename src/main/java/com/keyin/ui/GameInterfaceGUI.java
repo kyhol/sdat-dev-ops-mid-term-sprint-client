@@ -387,7 +387,7 @@ public class GameInterfaceGUI extends JFrame {
         for (LocationDTO location : filteredLocations) {
             JButton locButton = new JButton(location.getName());
             locButton.setFont(new Font("Serif", Font.BOLD, 20));
-            locButton.setForeground(new Color(240, 240, 240));
+//            locButton.setForeground(new Color(240, 240, 240));
             locButton.setBackground(new Color(0, 0, 0));
             locButton.setFocusPainted(false);
             locButton.setBorder(BorderFactory.createLineBorder(new Color(139, 0, 0), 2));

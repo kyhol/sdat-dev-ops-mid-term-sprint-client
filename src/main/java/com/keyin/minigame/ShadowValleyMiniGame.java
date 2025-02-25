@@ -99,9 +99,14 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
         URL imageUrl = getClass().getResource("/image/Shadow.jpg");
         JLabel imageLabel = new JLabel();
         if (imageUrl != null) {
-            ImageIcon imageIcon = new ImageIcon(imageUrl);
-            imageLabel.setIcon(imageIcon);
-            imageLabel.setPreferredSize(new Dimension(450, 300)); // Set a fixed size
+            ImageIcon originalIcon = new ImageIcon(imageUrl);
+            // Make the image stretch to fill the panel width
+            imageLabel.setIcon(originalIcon);
+            imageLabel.setPreferredSize(new Dimension(450, 300));
+            // Use horizontal stretch by setting the horizontal alignment
+            imageLabel.setHorizontalAlignment(JLabel.CENTER);
+            // Enable image scaling
+            imageLabel.setIcon(new ImageIcon(originalIcon.getImage().getScaledInstance(450, 300, Image.SCALE_FAST)));
         }
 
         JTextArea rulesText = new JTextArea();
@@ -111,8 +116,10 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
         rulesText.setBackground(new Color(30, 30, 30));
         rulesText.setForeground(new Color(200, 200, 200));
         rulesText.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 10));
-        rulesText.setPreferredSize(new Dimension(400, 200));
-        rulesText.setMinimumSize(new Dimension(400, 200));
+        rulesText.setPreferredSize(new Dimension(450, 200));
+        rulesText.setMinimumSize(new Dimension(450, 200));
+        // Increase text size
+        rulesText.setFont(new Font("SansSerif", Font.PLAIN, 14));
 
         String[] rulesLines = {
                 "I am Maquito, Lord of the Shadows:",
@@ -146,11 +153,17 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
 
         textTimer.start();
 
-        JPanel maquitoPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        JPanel maquitoPanel = new JPanel();
         maquitoPanel.setLayout(new BoxLayout(maquitoPanel, BoxLayout.Y_AXIS));
         maquitoPanel.setBackground(Color.BLACK);
         maquitoPanel.setPreferredSize(new Dimension(450, 600));
-        maquitoPanel.add(imageLabel);
+
+        // Wrap imageLabel in a panel to make it fill the width
+        JPanel imagePanel = new JPanel(new BorderLayout());
+        imagePanel.setBackground(Color.BLACK);
+        imagePanel.add(imageLabel, BorderLayout.CENTER);
+
+        maquitoPanel.add(imagePanel);
         maquitoPanel.add(rulesText);
 
         JPanel boardPanel = new JPanel(new GridLayout(BOARD_SIZE, BOARD_SIZE, 2, 2));
@@ -290,6 +303,48 @@ public class ShadowValleyMiniGame extends AbstractMiniGame {
         updateBoard();
 
         if (playerPieces.size() == REQUIRED_VICTIMS && !hasAnyConflicts()) {
+            // Show victory animation for 3 seconds
+            showVictoryAnimation();
+        }
+    }
+
+    private void showVictoryAnimation() {
+        // Create a JDialog to display the GIF in the center of the screen
+        JDialog animationDialog = new JDialog();
+        animationDialog.setUndecorated(true);
+        animationDialog.setBackground(new Color(0, 0, 0, 0)); // Transparent background
+
+        URL gifUrl = getClass().getResource("/gif/ShadowVictory.gif");
+        if (gifUrl != null) {
+            ImageIcon gifIcon = new ImageIcon(gifUrl);
+            JLabel gifLabel = new JLabel(gifIcon);
+
+            // Create a panel with a semi-transparent background
+            JPanel panel = new JPanel(new BorderLayout());
+            panel.setBackground(new Color(0, 0, 0, 150)); // Semi-transparent black
+            panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+            panel.add(gifLabel, BorderLayout.CENTER);
+
+            animationDialog.add(panel);
+            animationDialog.pack();
+
+            // Center the dialog on the screen
+            animationDialog.setLocationRelativeTo(gamePanel);
+
+            // Show the dialog
+            animationDialog.setVisible(true);
+
+            // Schedule the dialog to close after 3 seconds
+            Timer closeTimer = new Timer(5000, e -> {
+                animationDialog.dispose();
+                // Now show the victory message
+                cleanupAudioResources();
+                dialogBox.showText("You've conquered the shadows! The Shadow Cat plushie is yours!", this::completeGame);
+            });
+            closeTimer.setRepeats(false);
+            closeTimer.start();
+        } else {
+            // If GIF can't be loaded, just show the victory message
             cleanupAudioResources();
             dialogBox.showText("You've conquered the shadows! The Shadow Cat plushie is yours!", this::completeGame);
         }

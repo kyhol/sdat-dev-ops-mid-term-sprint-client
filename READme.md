@@ -1,3 +1,5 @@
+[![JUnit Tests](https://github.com/kyhol/sdat-dev-ops-mid-term-sprint-client/actions/workflows/maven.yml/badge.svg)](https://github.com/kyhol/sdat-dev-ops-mid-term-sprint-client/actions/workflows/maven.yml)
+
 # **Sprint Week Project: Plushie Game**
 
 

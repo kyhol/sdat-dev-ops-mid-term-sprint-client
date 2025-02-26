@@ -25,7 +25,6 @@ public class MiniGameFactory {
             case 6:
                 return new ShadowValleyMiniGame(locationId, heroId, parentFrame); // Brad's game
             default:
-                // Fallback to a generic mini-game if the location ID is not recognized
                 JOptionPane.showMessageDialog(parentFrame,
                         "No specific mini-game found for location ID: " + locationId,
                         "Warning",
@@ -46,7 +45,6 @@ public class MiniGameFactory {
 
         @Override
         protected void customizeUI() {
-            // Basic UI is already set up in the parent class
         }
 
         @Override

@@ -64,7 +64,7 @@ public class GameArtPanel extends JPanel {
         add(centeringPanel, BorderLayout.CENTER);
     }
 
-    // Method to update the art if needed
+    // Method to update the art
     public void setArt(String newArt) {
         artArea.setText(newArt);
     }

@@ -51,7 +51,7 @@ public class DialogBox extends JPanel {
         textPanel.add(continueIndicator, BorderLayout.SOUTH);
         add(textPanel, BorderLayout.CENTER);
 
-        // Create typing timer
+        //typing timer
         typingTimer = new Timer(50, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -64,7 +64,7 @@ public class DialogBox extends JPanel {
             }
         });
 
-        // Create timer for showing the continue indicator
+        // timer for showing the continue indicator
         indicatorTimer = new Timer(2000, e -> {
             continueIndicator.setVisible(true);
             ((Timer)e.getSource()).stop();

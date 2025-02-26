@@ -6,7 +6,8 @@ import javax.swing.*;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
-// Sound imports (ensure these are available in your JDK)
+
+
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
@@ -15,7 +16,7 @@ import javax.sound.sampled.FloatControl;
 import com.keyin.hero.HeroDTO;
 import com.keyin.hero.HeroService;
 import com.keyin.location.LocationDTO;
-import com.keyin.location.LocationService;  // This is the client REST wrapper
+import com.keyin.location.LocationService;
 import com.keyin.minigame.AbstractMiniGame;
 import com.keyin.minigame.MiniGameFactory;
 import com.keyin.minigame.MiniGameService;
@@ -23,7 +24,6 @@ import java.util.concurrent.CompletableFuture;
 import com.keyin.plushie.PlushieDTO;
 import com.keyin.plushie.PlushieService;
 
-// Additional imports for the final boss panel
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
@@ -59,7 +59,7 @@ public class GameInterfaceGUI extends JFrame {
     private JPanel mainPanel;
     private JTextArea outputArea;
     private JPanel locationButtonPanel;
-    private DialogBox dialogBox; // Assumes DialogBox is implemented elsewhere
+    private DialogBox dialogBox;
 
     // Game progress variables
     private int plushiesCollected = 0;
@@ -67,7 +67,7 @@ public class GameInterfaceGUI extends JFrame {
     private List<LocationDTO> allLocations = new ArrayList<>();
     private List<PlushieDTO> collectedPlushies = new ArrayList<>();
 
-    // Sound fields (kept in the GUI)
+    // Sound fields
     private Clip musicClip;
     private boolean isMuted = false;
 
@@ -100,7 +100,7 @@ public class GameInterfaceGUI extends JFrame {
         createHeroCreationPanel();
         createStartPanel();
         createLocationSelectionPanel();
-        createMiniGamePanel(); // fallback mini-game panel
+        createMiniGamePanel();
         createFinalBossPanel();
         createFinalCongratulationsPanel();
 
@@ -116,7 +116,6 @@ public class GameInterfaceGUI extends JFrame {
         GradientPanel panel = new GradientPanel(new Color(245, 245, 245), new Color(220, 220, 220));
         panel.setLayout(new BorderLayout(20, 20));
 
-        // 1) Move "RPG Adventure" ~250px down from the top
         JLabel titleLabel = new JLabel("RPG Adventure", SwingConstants.CENTER);
         titleLabel.setFont(new Font("Serif", Font.BOLD | Font.ITALIC, 48));
         titleLabel.setForeground(new Color(0, 0, 0));
@@ -261,7 +260,7 @@ public class GameInterfaceGUI extends JFrame {
         GradientPanel panel = new GradientPanel(new Color(245, 245, 245), new Color(220, 220, 220));
         panel.setLayout(new BorderLayout());
 
-        // Some big art in center
+        // art in center
         GameArtPanel gameArtPanel = new GameArtPanel();
         panel.add(gameArtPanel, BorderLayout.CENTER);
 
@@ -271,7 +270,6 @@ public class GameInterfaceGUI extends JFrame {
 
         final int[] dialogState = {0};
 
-        // KeyEventDispatcher
         KeyEventDispatcher keyEventDispatcher = new KeyEventDispatcher() {
             @Override
             public boolean dispatchKeyEvent(KeyEvent e) {
@@ -311,7 +309,6 @@ public class GameInterfaceGUI extends JFrame {
                         int completedCount = locationService.getCompletedLocationsCount();
                         String progressText = getProgressionText(completedCount);
                         SwingUtilities.invokeLater(() -> {
-                            // Plain multiline text
                             dialogBox.showText(progressText);
                             dialogState[0] = 0;
                         });
@@ -353,11 +350,9 @@ public class GameInterfaceGUI extends JFrame {
         GradientPanel locationSelectionPanel = new GradientPanel(new Color(245, 245, 245), new Color(220, 220, 220));
         locationSelectionPanel.setLayout(new BorderLayout(15,15));
 
-        // 2) Make "Select a Realm to Explore" bigger (48) & add a bit more vertical padding
         JLabel prompt = new JLabel("Select a Realm to Explore:", SwingConstants.CENTER);
         prompt.setFont(new Font("Serif", Font.BOLD | Font.ITALIC, 48));
         prompt.setForeground(new Color(0, 0, 0));
-        // Slightly more vertical space around the label
         prompt.setBorder(BorderFactory.createEmptyBorder(30, 0, 30, 0));
         locationSelectionPanel.add(prompt, BorderLayout.NORTH);
 
@@ -426,7 +421,6 @@ public class GameInterfaceGUI extends JFrame {
             locButton.setFocusPainted(false);
             locButton.setBorder(BorderFactory.createLineBorder(new Color(139, 0, 0), 2));
 
-            // Hover effect
             locButton.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseEntered(MouseEvent e) {
@@ -488,7 +482,6 @@ public class GameInterfaceGUI extends JFrame {
             JPanel gamePanel = miniGame.getGamePanel();
             gamePanel.setName(panelName);
 
-            // Callbacks
             miniGame.setOnCompleteCallback(() -> {
                 System.out.println("GameInterfaceGUI: Minigame completed for location " + locationId);
                 boolean success = locationService.completeLocation(locationId, allLocations);
@@ -609,7 +602,7 @@ public class GameInterfaceGUI extends JFrame {
         // Counter for explosion effects
         final int[] explosionCount = {0};
 
-        // Define the epic boss dialog
+        // epic boss dialog
         String[] bossDialog = {
                 "You have come far, brave adventurer...",
                 "BUT YOUR JOURNEY ENDS HERE!",
@@ -713,7 +706,7 @@ public class GameInterfaceGUI extends JFrame {
         buttonPanel.add(fightButton);
         panel.add(buttonPanel, BorderLayout.SOUTH);
 
-        // Add a "Run Away" button for humor
+        // Add a "Run Away" button
         JButton runButton = new JButton("Run Away");
         runButton.setFont(new Font("Arial", Font.ITALIC, 12));
         runButton.addActionListener(e -> {
@@ -761,26 +754,25 @@ public class GameInterfaceGUI extends JFrame {
         label.setFont(new Font("Arial", Font.BOLD, 28));
         label.setForeground(new Color(0, 0, 0));
 
-        // Add some padding
         label.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         panel.add(label, BorderLayout.CENTER);
 
-        // Create a text area to display all collected data
+        // text area to display all collected data
         JTextArea summaryTextArea = new JTextArea();
         summaryTextArea.setEditable(false);
         summaryTextArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
         summaryTextArea.setLineWrap(true);
         summaryTextArea.setWrapStyleWord(true);
-        summaryTextArea.setVisible(false); // Initially hidden
+        summaryTextArea.setVisible(false);
 
         JScrollPane scrollPane = new JScrollPane(summaryTextArea);
         scrollPane.setPreferredSize(new Dimension(600, 300));
-        scrollPane.setVisible(false); // Initially hidden
+        scrollPane.setVisible(false);
 
         panel.add(scrollPane, BorderLayout.NORTH);
 
-        // Add component listener to update hero info when panel becomes visible
+        // component listener to update hero info when panel becomes visible
         panel.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentShown(ComponentEvent e) {
@@ -820,7 +812,6 @@ public class GameInterfaceGUI extends JFrame {
             scrollPane.setVisible(!isVisible);
             summaryTextArea.setVisible(!isVisible);
 
-            // Update button text based on visibility
             summaryButton.setText(isVisible ? "View Game Summary" : "Hide Game Summary");
         });
 
@@ -898,7 +889,6 @@ public class GameInterfaceGUI extends JFrame {
 
                     summary.append("Total Collected Plushies: ").append(collectedPlushies.size()).append("\n\n");
                 } else {
-                    // Try to fetch from service
                     try {
                         List<PlushieDTO> allPlushies = plushieService.getAllPlushies();
                         List<PlushieDTO> collected = allPlushies.stream()
@@ -948,10 +938,9 @@ public class GameInterfaceGUI extends JFrame {
 
             summary.append("=== END OF GAME SUMMARY ===");
 
-            // Update the text area on the EDT
             SwingUtilities.invokeLater(() -> {
                 textArea.setText(summary.toString());
-                textArea.setCaretPosition(0); // Scroll to top
+                textArea.setCaretPosition(0);
             });
         }).start();
     }
@@ -1133,7 +1122,6 @@ public class GameInterfaceGUI extends JFrame {
             descArea.setForeground(Color.WHITE);
             descArea.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-            // Hover effect
             panel.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseEntered(MouseEvent e) {

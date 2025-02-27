@@ -125,8 +125,8 @@ Each team member created their **own game** within the client. Below is what eac
 
 | **Name** | **Game Name** | **Description** |
 |---------------|-------------|----------------|
-| [ Adam ]    | [Game Title] | Description. |
-| [ Kyle ]    | [Game Title] | Description. |
+| [ Adam ]    | Mystic Forest | Simple grid based minigame that allows the player to move along the area to complete specific tasks by changing the x and y values. |
+| [ Kyle ]    | Ancient Temple | Horror minigame using where the player runs away using prompts on the screen. |
 | [ Brian ]   | [Game Title] | Description. |
 | [ Brad ]    | [Game Title] | Description. |
 | [ Michael ] | [Game Title] | Description. |

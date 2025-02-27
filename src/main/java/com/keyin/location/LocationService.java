@@ -70,12 +70,6 @@ public class LocationService {
                     .build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() == 200) {
-//                for (LocationDTO loc : allLocations) {
-//                    if (loc.getId().equals(locationId)) {
-//                        collectedPlushies.add();
-//                        break;
-//                    }
-//                }
                 return true;
             } else {
                 System.err.println("Complete location failed: HTTP " + response.statusCode());
